@@ -393,7 +393,7 @@ struct Call : public ExprNode<Call> {
 
     // If that function has multiple values, which value does this
     // call node refer to?
-    //  int value_index;
+    int value_index{0};
 
     // Halide uses calls internally to represent certain operations
     // (instead of IR nodes). These are matched by name. Note that
