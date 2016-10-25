@@ -118,14 +118,15 @@ public:
         if (!types_match(op->type, expr.type())) {
             result = false;
         } else if (matches) {
-            if (op->name == "*") {
+            if (op->name_hint == "*") {
                 matches->push_back(expr);
             } else {
                 const Variable *e = expr.as<Variable>();
-                result = e && (e->name == op->name);
+                result = e && (e == op);
             }
         } else if (var_matches) {
-            Expr &match = (*var_matches)[op->name];
+            // TODO(tqchen) change to address match.
+            Expr &match = (*var_matches)[op->name_hint];
             if (match.defined()) {
                 result = equal(match, expr);
             } else {
@@ -224,7 +225,7 @@ public:
         if (result && e &&
             types_match(op->type, e->type) &&
             e->name == op->name &&
-            // e->value_index == op->value_index &&
+            e->value_index == op->value_index &&
             e->call_type == op->call_type &&
             e->args.size() == op->args.size()) {
             for (size_t i = 0; result && (i < e->args.size()); i++) {

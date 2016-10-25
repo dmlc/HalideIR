@@ -41,6 +41,7 @@ private:
     IRCompareCache *cache;
 
     CmpResult compare_names(const std::string &a, const std::string &b);
+    CmpResult compare_ptrs(const IRNode* a, const IRNode* b);
     CmpResult compare_types(Type a, Type b);
     CmpResult compare_expr_vector(const std::vector<Expr> &a, const std::vector<Expr> &b);
 
@@ -81,10 +82,10 @@ private:
     void visit(const ProducerConsumer *);
     void visit(const For *);
     void visit(const Store *);
-    //  void visit(const Provide *);
+    void visit(const Provide *);
     void visit(const Allocate *);
     void visit(const Free *);
-    //  void visit(const Realize *);
+    void visit(const Realize *);
     void visit(const Block *);
     void visit(const IfThenElse *);
     void visit(const Evaluate *);
@@ -216,6 +217,16 @@ IRComparer::CmpResult IRComparer::compare_names(const string &a, const string &b
     return result;
 }
 
+IRComparer::CmpResult IRComparer::compare_ptrs(const IRNode* a, const IRNode* b) {
+    if (result != Equal) return result;
+    if (a < b) {
+      result = LessThan;
+    } else {
+      result = GreaterThan;
+    }
+    return result;
+}
+
 
 IRComparer::CmpResult IRComparer::compare_expr_vector(const vector<Expr> &a, const vector<Expr> &b) {
     if (result != Equal) return result;
@@ -254,7 +265,7 @@ void IRComparer::visit(const Cast *op) {
 
 void IRComparer::visit(const Variable *op) {
     const Variable *e = expr.as<Variable>();
-    compare_names(e->name, op->name);
+    compare_ptrs(e, op);
 }
 
 namespace {
@@ -315,6 +326,7 @@ void IRComparer::visit(const Broadcast *op) {
 
 void IRComparer::visit(const Call *op) {
     const Call *e = expr.as<Call>();
+
     compare_names(e->name, op->name);
     compare_scalar(e->call_type, op->call_type);
     compare_scalar(e->value_index, op->value_index);
@@ -371,14 +383,13 @@ void IRComparer::visit(const Store *op) {
     compare_expr(s->index, op->index);
 }
 
-/*
 void IRComparer::visit(const Provide *op) {
     const Provide *s = stmt.as<Provide>();
 
     compare_names(s->name, op->name);
     compare_expr_vector(s->args, op->args);
     compare_expr_vector(s->values, op->values);
-}*/
+}
 
 void IRComparer::visit(const Allocate *op) {
     const Allocate *s = stmt.as<Allocate>();
@@ -391,7 +402,6 @@ void IRComparer::visit(const Allocate *op) {
     compare_names(s->free_function, op->free_function);
 }
 
-/*
 void IRComparer::visit(const Realize *op) {
     const Realize *s = stmt.as<Realize>();
 
@@ -407,7 +417,7 @@ void IRComparer::visit(const Realize *op) {
     }
     compare_stmt(s->body, op->body);
     compare_expr(s->condition, op->condition);
-}*/
+}
 
 void IRComparer::visit(const Block *op) {
     const Block *s = stmt.as<Block>();

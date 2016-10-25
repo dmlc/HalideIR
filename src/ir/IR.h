@@ -15,7 +15,6 @@
 #include "base/Util.h"
 #include "Expr.h"
 
-
 namespace Halide {
 namespace Internal {
 
@@ -193,7 +192,6 @@ struct Select : public ExprNode<Select> {
  * no inherent type. */
 struct Load : public ExprNode<Load> {
     std::string name;
-
     Expr index;
 
     EXPORT static Expr make(Type type, std::string name, Expr index);
@@ -296,6 +294,20 @@ struct Store : public StmtNode<Store> {
     static const IRNodeType _type_info = IRNodeType::Store;
 };
 
+/** This defines the value of a function at a multi-dimensional
+ * location. You should think of it as a store to a
+ * multi-dimensional array. It gets lowered to a conventional
+ * Store node. */
+struct Provide : public StmtNode<Provide> {
+    std::string name;
+    std::vector<Expr> values;
+    std::vector<Expr> args;
+
+    EXPORT static Stmt make(std::string name, const std::vector<Expr> &values, const std::vector<Expr> &args);
+
+    static const IRNodeType _type_info = IRNodeType::Provide;
+};
+
 /** Allocate a scratch area called with the given name, type, and
  * size. The buffer lives for at most the duration of the body
  * statement, within which it is freed. It is an error for an allocate
@@ -340,6 +352,37 @@ struct Free : public StmtNode<Free> {
     EXPORT static Stmt make(std::string name);
 
     static const IRNodeType _type_info = IRNodeType::Free;
+};
+
+/** A single-dimensional span. Includes all numbers between min and
+ * (min + extent - 1) */
+struct Range {
+    Expr min, extent;
+    Range() {}
+    Range(Expr min, Expr extent) : min(min), extent(extent) {
+        internal_assert(min.type() == extent.type()) << "Region min and extent must have same type\n";
+    }
+};
+
+/** A multi-dimensional box. The outer product of the elements */
+typedef std::vector<Range> Region;
+
+/** Allocate a multi-dimensional buffer of the given type and
+ * size. Create some scratch memory that will back the function 'name'
+ * over the range specified in 'bounds'. The bounds are a vector of
+ * (min, extent) pairs for each dimension. Allocation only occurs if
+ * the condition evaluates to true. */
+struct Realize : public StmtNode<Realize> {
+    std::string name;
+    std::vector<Type> types;
+    Region bounds;
+    Expr condition;
+    Stmt body;
+
+    EXPORT static Stmt make(const std::string &name, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body);
+
+    static const IRNodeType _type_info = IRNodeType::Realize;
+
 };
 
 /** A sequence of statements to be executed in-order. 'rest' may be
@@ -391,10 +434,6 @@ struct Call : public ExprNode<Call> {
     } CallType;
     CallType call_type;
 
-    // If that function has multiple values, which value does this
-    // call node refer to?
-    int value_index{0};
-
     // Halide uses calls internally to represent certain operations
     // (instead of IR nodes). These are matched by name. Note that
     // these are deliberately char* (rather than std::string) so that
@@ -402,6 +441,7 @@ struct Call : public ExprNode<Call> {
     // risking ambiguous initalization order; we use a typedef to simplify
     // declaration.
     typedef const char* const ConstString;
+
     EXPORT static ConstString debug_to_file,
         shuffle_vector,
         interleave_vectors,
@@ -463,9 +503,17 @@ struct Call : public ExprNode<Call> {
     // onto a pointer to that function for the purposes of reference
     // counting only. Self-references in update definitions do not
     // have this set, to avoid cycles.
-    //IntrusivePtr<FunctionContents> func;
+    IntrusivePtr<const IRNode> func;
 
-    EXPORT static Expr make(Type type, std::string name, const std::vector<Expr> &args, CallType call_type);
+    // If that function has multiple values, which value does this
+    // call node refer to?
+    int value_index{0};
+
+    EXPORT static Expr make(Type type, std::string name,
+                            const std::vector<Expr> &args,
+                            CallType call_type,
+                            IntrusivePtr<const IRNode> func = nullptr,
+                            int value_index = 0);
 
     /** Check if a call node is pure within a pipeline, meaning that
      * the same args always give the same result, and the calls can be
@@ -492,8 +540,22 @@ struct Call : public ExprNode<Call> {
  * parameter, reduction variable, or something defined by a Let or
  * LetStmt node. */
 struct Variable : public ExprNode<Variable> {
-    std::string name;
-    EXPORT static Expr make(Type type, std::string name);
+    /**
+     * variable is uniquely identified by its address instead of name
+     * This field is renamed to name_hint to make it different from
+     * original ref by name convention
+     */
+    std::string name_hint;
+
+    // BufferPtr and Parameter are removed from IR
+    // They can be added back via passing in binding of Variable to specific values.
+    // in the final stage of code generation.
+
+    // refing back ReductionVariable from Variable can cause cyclic refs,
+    // remove reference to reduction domain here,
+    // instead,uses Reduction as a ExprNode
+
+    EXPORT static Expr make(Type type, std::string name_hint);
 
     static const IRNodeType _type_info = IRNodeType::Variable;
 };

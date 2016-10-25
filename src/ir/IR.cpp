@@ -339,6 +339,21 @@ Stmt Store::make(std::string name, Expr value, Expr index) {
     return node;
 }
 
+Stmt Provide::make(std::string name, const std::vector<Expr> &values, const std::vector<Expr> &args) {
+    internal_assert(!values.empty()) << "Provide of no values\n";
+    for (size_t i = 0; i < values.size(); i++) {
+        internal_assert(values[i].defined()) << "Provide of undefined value\n";
+    }
+    for (size_t i = 0; i < args.size(); i++) {
+        internal_assert(args[i].defined()) << "Provide to undefined location\n";
+    }
+
+    Provide *node = new Provide;
+    node->name = name;
+    node->values = values;
+    node->args = args;
+    return node;
+}
 
 Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extents,
                     Expr condition, Stmt body,
@@ -403,6 +418,27 @@ Stmt Free::make(std::string name) {
     return node;
 }
 
+Stmt Realize::make(const std::string &name, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body) {
+    for (size_t i = 0; i < bounds.size(); i++) {
+        internal_assert(bounds[i].min.defined()) << "Realize of undefined\n";
+        internal_assert(bounds[i].extent.defined()) << "Realize of undefined\n";
+        internal_assert(bounds[i].min.type().is_scalar()) << "Realize of vector size\n";
+        internal_assert(bounds[i].extent.type().is_scalar()) << "Realize of vector size\n";
+    }
+    internal_assert(body.defined()) << "Realize of undefined\n";
+    internal_assert(!types.empty()) << "Realize has empty type\n";
+    internal_assert(condition.defined()) << "Realize with undefined condition\n";
+    internal_assert(condition.type().is_bool()) << "Realize condition is not boolean\n";
+
+    Realize *node = new Realize;
+    node->name = name;
+    node->types = types;
+    node->bounds = bounds;
+    node->condition = condition;
+    node->body = body;
+    return node;
+}
+
 Stmt Block::make(Stmt first, Stmt rest) {
     internal_assert(first.defined()) << "Block of undefined\n";
     internal_assert(rest.defined()) << "Block of undefined\n";
@@ -451,7 +487,8 @@ Stmt Evaluate::make(Expr v) {
     return node;
 }
 
-Expr Call::make(Type type, std::string name, const std::vector<Expr> &args, CallType call_type) {
+Expr Call::make(Type type, std::string name, const std::vector<Expr> &args, CallType call_type,
+                IntrusivePtr<const IRNode> func, int value_index) {
     for (size_t i = 0; i < args.size(); i++) {
         internal_assert(args[i].defined()) << "Call of undefined\n";
     }
@@ -467,16 +504,15 @@ Expr Call::make(Type type, std::string name, const std::vector<Expr> &args, Call
     node->name = name;
     node->args = args;
     node->call_type = call_type;
-    //node->func = func;
-    //node->value_index = value_index;
+    node->func = func;
+    node->value_index = value_index;
     return node;
 }
 
-Expr Variable::make(Type type, std::string name) {
-    internal_assert(!name.empty());
+Expr Variable::make(Type type, std::string name_hint) {
     Variable *node = new Variable;
     node->type = type;
-    node->name = name;
+    node->name_hint = name_hint;
     return node;
 }
 
@@ -513,12 +549,12 @@ template<> void StmtNode<AssertStmt>::accept(IRVisitor *v) const { v->visit((con
 template<> void StmtNode<ProducerConsumer>::accept(IRVisitor *v) const { v->visit((const ProducerConsumer *)this); }
 template<> void StmtNode<For>::accept(IRVisitor *v) const { v->visit((const For *)this); }
 template<> void StmtNode<Store>::accept(IRVisitor *v) const { v->visit((const Store *)this); }
-// template<> void StmtNode<Provide>::accept(IRVisitor *v) const { v->visit((const Provide *)this); }
+template<> void StmtNode<Provide>::accept(IRVisitor *v) const { v->visit((const Provide *)this); }
 template<> void StmtNode<Allocate>::accept(IRVisitor *v) const { v->visit((const Allocate *)this); }
 template<> void StmtNode<Free>::accept(IRVisitor *v) const { v->visit((const Free *)this); }
+template<> void StmtNode<Realize>::accept(IRVisitor *v) const { v->visit((const Realize *)this); }
 template<> void StmtNode<Block>::accept(IRVisitor *v) const { v->visit((const Block *)this); }
 template<> void StmtNode<IfThenElse>::accept(IRVisitor *v) const { v->visit((const IfThenElse *)this); }
-// template<> void StmtNode<Realize>::accept(IRVisitor *v) const { v->visit((const Realize *)this); }
 template<> void StmtNode<Evaluate>::accept(IRVisitor *v) const { v->visit((const Evaluate *)this); }
 
 Call::ConstString Call::debug_to_file = "debug_to_file";

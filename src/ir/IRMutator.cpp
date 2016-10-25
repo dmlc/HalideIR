@@ -95,7 +95,7 @@ void IRMutator::visit(const Load *op) {
     if (index.same_as(op->index)) {
         expr = op;
     } else {
-      expr = Load::make(op->type, op->name, index);
+        expr = Load::make(op->type, op->name, index);
     }
 }
 
@@ -131,8 +131,8 @@ void IRMutator::visit(const Call *op) {
     if (!changed) {
         expr = op;
     } else {
-        expr = Call::make(op->type, op->name, new_args, op->call_type);
-                          //op->func, op->value_index, op->image, op->param);
+        expr = Call::make(op->type, op->name, new_args, op->call_type,
+                          op->func, op->value_index);
     }
 }
 
@@ -201,6 +201,32 @@ void IRMutator::visit(const Store *op) {
     }
 }
 
+void IRMutator::visit(const Provide *op) {
+    vector<Expr> new_args(op->args.size());
+    vector<Expr> new_values(op->values.size());
+    bool changed = false;
+
+    // Mutate the args
+    for (size_t i = 0; i < op->args.size(); i++) {
+        Expr old_arg = op->args[i];
+        Expr new_arg = mutate(old_arg);
+        if (!new_arg.same_as(old_arg)) changed = true;
+        new_args[i] = new_arg;
+    }
+
+    for (size_t i = 0; i < op->values.size(); i++) {
+        Expr old_value = op->values[i];
+        Expr new_value = mutate(old_value);
+        if (!new_value.same_as(old_value)) changed = true;
+        new_values[i] = new_value;
+    }
+
+    if (!changed) {
+        stmt = op;
+    } else {
+        stmt = Provide::make(op->name, new_values, new_args);
+    }
+}
 
 void IRMutator::visit(const Allocate *op) {
     std::vector<Expr> new_extents;
@@ -227,6 +253,33 @@ void IRMutator::visit(const Allocate *op) {
 
 void IRMutator::visit(const Free *op) {
     stmt = op;
+}
+
+void IRMutator::visit(const Realize *op) {
+    Region new_bounds(op->bounds.size());
+    bool bounds_changed = false;
+
+    // Mutate the bounds
+    for (size_t i = 0; i < op->bounds.size(); i++) {
+        Expr old_min    = op->bounds[i].min;
+        Expr old_extent = op->bounds[i].extent;
+        Expr new_min    = mutate(old_min);
+        Expr new_extent = mutate(old_extent);
+        if (!new_min.same_as(old_min))       bounds_changed = true;
+        if (!new_extent.same_as(old_extent)) bounds_changed = true;
+        new_bounds[i] = Range(new_min, new_extent);
+    }
+
+    Stmt body = mutate(op->body);
+    Expr condition = mutate(op->condition);
+    if (!bounds_changed &&
+        body.same_as(op->body) &&
+        condition.same_as(op->condition)) {
+        stmt = op;
+    } else {
+        stmt = Realize::make(op->name, op->types, new_bounds,
+                             condition, body);
+    }
 }
 
 void IRMutator::visit(const Block *op) {

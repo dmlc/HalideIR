@@ -128,18 +128,7 @@ void IRVisitor::visit(const Call *op) {
         op->args[i].accept(this);
     }
 
-    // Consider extern call args
-    /*if (op->func.defined()) {
-      Function f(op->func);
-        if (op->call_type == Call::Halide && f.has_extern_definition()) {
-            for (size_t i = 0; i < f.extern_arguments().size(); i++) {
-                ExternFuncArgument arg = f.extern_arguments()[i];
-                if (arg.is_expr()) {
-                    arg.expr.accept(this);
-                }
-            }
-        }
-        }*/
+    // removed: Consider extern call args
 }
 
 void IRVisitor::visit(const Let *op) {
@@ -172,7 +161,6 @@ void IRVisitor::visit(const Store *op) {
     op->index.accept(this);
 }
 
-/*
 void IRVisitor::visit(const Provide *op) {
     for (size_t i = 0; i < op->values.size(); i++) {
         op->values[i].accept(this);
@@ -180,7 +168,7 @@ void IRVisitor::visit(const Provide *op) {
     for (size_t i = 0; i < op->args.size(); i++) {
         op->args[i].accept(this);
     }
-}*/
+}
 
 void IRVisitor::visit(const Allocate *op) {
     for (size_t i = 0; i < op->extents.size(); i++) {
@@ -196,7 +184,6 @@ void IRVisitor::visit(const Allocate *op) {
 void IRVisitor::visit(const Free *op) {
 }
 
-/*
 void IRVisitor::visit(const Realize *op) {
     for (size_t i = 0; i < op->bounds.size(); i++) {
         op->bounds[i].min.accept(this);
@@ -204,7 +191,7 @@ void IRVisitor::visit(const Realize *op) {
     }
     op->condition.accept(this);
     op->body.accept(this);
-}*/
+}
 
 void IRVisitor::visit(const Block *op) {
     op->first.accept(this);
@@ -398,7 +385,6 @@ void IRGraphVisitor::visit(const Store *op) {
     include(op->index);
 }
 
-/*
 void IRGraphVisitor::visit(const Provide *op) {
     for (size_t i = 0; i < op->values.size(); i++) {
         include(op->values[i]);
@@ -406,7 +392,7 @@ void IRGraphVisitor::visit(const Provide *op) {
     for (size_t i = 0; i < op->args.size(); i++) {
         include(op->args[i]);
     }
-}*/
+}
 
 void IRGraphVisitor::visit(const Allocate *op) {
     for (size_t i = 0; i < op->extents.size(); i++) {
@@ -422,7 +408,6 @@ void IRGraphVisitor::visit(const Allocate *op) {
 void IRGraphVisitor::visit(const Free *op) {
 }
 
-/*
 void IRGraphVisitor::visit(const Realize *op) {
     for (size_t i = 0; i < op->bounds.size(); i++) {
         include(op->bounds[i].min);
@@ -430,7 +415,7 @@ void IRGraphVisitor::visit(const Realize *op) {
     }
     include(op->condition);
     include(op->body);
-}*/
+}
 
 void IRGraphVisitor::visit(const Block *op) {
     include(op->first);

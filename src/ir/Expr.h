@@ -55,10 +55,10 @@ enum class IRNodeType {
     ProducerConsumer,
     For,
     Store,
-    //Provide,
+    Provide,
     Allocate,
     Free,
-    //Realize,
+    Realize,
     Block,
     IfThenElse,
     Evaluate

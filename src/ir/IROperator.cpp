@@ -6,7 +6,6 @@
 #include "IROperator.h"
 #include "IRPrinter.h"
 #include "base/Debug.h"
-//#include "CSE.h"
 
 namespace Halide {
 
@@ -568,7 +567,7 @@ Expr halide_erf(Expr x_full) {
     // Switch between the two approximations based on the magnitude.
     Expr y = select(x > 1.0f, approx1, approx2);
     Expr result = sign * y;
-    // Expr result = common_subexpression_eliminatio(nsign * y);
+    // Expr result = common_subexpression_elimination(sign * y);
 
     return result;
 }

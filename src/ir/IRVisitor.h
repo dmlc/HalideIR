@@ -55,10 +55,10 @@ public:
     EXPORT virtual void visit(const ProducerConsumer *);
     EXPORT virtual void visit(const For *);
     EXPORT virtual void visit(const Store *);
-    //  EXPORT virtual void visit(const Provide *);
+    EXPORT virtual void visit(const Provide *);
     EXPORT virtual void visit(const Allocate *);
     EXPORT virtual void visit(const Free *);
-    //  EXPORT virtual void visit(const Realize *);
+    EXPORT virtual void visit(const Realize *);
     EXPORT virtual void visit(const Block *);
     EXPORT virtual void visit(const IfThenElse *);
     EXPORT virtual void visit(const Evaluate *);
@@ -119,10 +119,10 @@ public:
     EXPORT virtual void visit(const ProducerConsumer *);
     EXPORT virtual void visit(const For *);
     EXPORT virtual void visit(const Store *);
-    //  EXPORT virtual void visit(const Provide *);
+    EXPORT virtual void visit(const Provide *);
     EXPORT virtual void visit(const Allocate *);
     EXPORT virtual void visit(const Free *);
-    //  EXPORT virtual void visit(const Realize *);
+    EXPORT virtual void visit(const Realize *);
     EXPORT virtual void visit(const Block *);
     EXPORT virtual void visit(const IfThenElse *);
     EXPORT virtual void visit(const Evaluate *);

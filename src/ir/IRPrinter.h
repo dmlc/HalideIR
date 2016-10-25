@@ -28,9 +28,6 @@ EXPORT std::ostream &operator<<(std::ostream &stream, const Expr &);
  * human-readable form */
 EXPORT std::ostream &operator<<(std::ostream &stream, const Type &);
 
-/** Emit a halide Module on an output stream (such as std::cout) in a
- * human-readable form */
-// EXPORT std::ostream &operator<<(std::ostream &stream, const Module &);
 
 /** Emit a halide device api type in a human readable form */
 EXPORT std::ostream &operator<<(std::ostream &stream, const DeviceAPI &);
@@ -107,10 +104,10 @@ protected:
     void visit(const ProducerConsumer *);
     void visit(const For *);
     void visit(const Store *);
-    //  void visit(const Provide *);
+    void visit(const Provide *);
     void visit(const Allocate *);
     void visit(const Free *);
-    //  void visit(const Realize *);
+    void visit(const Realize *);
     void visit(const Block *);
     void visit(const IfThenElse *);
     void visit(const Evaluate *);

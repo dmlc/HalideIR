@@ -153,6 +153,7 @@ ostream &operator<<(ostream &stream, const Stmt &ir) {
     return stream;
 }
 
+
 IRPrinter::IRPrinter(ostream &s) : stream(s), indent(0) {
     s.setf(std::ios::fixed, std::ios::floatfield);
 }
@@ -240,7 +241,7 @@ void IRPrinter::visit(const Cast *op) {
 void IRPrinter::visit(const Variable *op) {
     // omit the type
     // stream << op->name << "." << op->type;
-    stream << op->name;
+    stream << op->name_hint;
 }
 
 void IRPrinter::visit(const Add *op) {
@@ -492,6 +493,30 @@ void IRPrinter::visit(const Store *op) {
     stream << '\n';
 }
 
+void IRPrinter::visit(const Provide *op) {
+    do_indent();
+    stream << op->name << "(";
+    for (size_t i = 0; i < op->args.size(); i++) {
+        print(op->args[i]);
+        if (i < op->args.size() - 1) stream << ", ";
+    }
+    stream << ") = ";
+    if (op->values.size() > 1) {
+        stream << "{";
+    }
+    for (size_t i = 0; i < op->values.size(); i++) {
+        if (i > 0) {
+            stream << ", ";
+        }
+        print(op->values[i]);
+    }
+    if (op->values.size() > 1) {
+        stream << "}";
+    }
+
+    stream << '\n';
+}
+
 void IRPrinter::visit(const Allocate *op) {
     do_indent();
     stream << "allocate " << op->name << "[" << op->type;
@@ -518,6 +543,32 @@ void IRPrinter::visit(const Free *op) {
     do_indent();
     stream << "free " << op->name;
     stream << '\n';
+}
+
+void IRPrinter::visit(const Realize *op) {
+    do_indent();
+    stream << "realize " << op->name << "(";
+    for (size_t i = 0; i < op->bounds.size(); i++) {
+        stream << "[";
+        print(op->bounds[i].min);
+        stream << ", ";
+        print(op->bounds[i].extent);
+        stream << "]";
+        if (i < op->bounds.size() - 1) stream << ", ";
+    }
+    stream << ")";
+    if (!is_one(op->condition)) {
+        stream << " if ";
+        print(op->condition);
+    }
+    stream << " {\n";
+
+    indent += 2;
+    print(op->body);
+    indent -= 2;
+
+    do_indent();
+    stream << "}\n";
 }
 
 void IRPrinter::visit(const Block *op) {
