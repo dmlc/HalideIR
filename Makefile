@@ -1,7 +1,7 @@
 export CXX=clang++
 export LDFLAGS = -pthread -lm
 export CFLAGS =  -std=c++11 -Wall -O2  -Wno-unknown-pragmas -funroll-loops\
-	 -Iinclude -Idmlc-core/include -fPIC
+	 -Iinclude -Idmlc-core/include -Isrc -fPIC
 
 # specify tensor path
 .PHONY: clean all test doc
