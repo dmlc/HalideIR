@@ -8,13 +8,11 @@ export CFLAGS =  -std=c++11 -Wall -O2  -Wno-unknown-pragmas -funroll-loops\
 
 CCSUFFIX=cpp
 
-all: lib/libtvm.a lib/libtvm.so
+all: lib/libHalideIR.a lib/libHalideIR.so
 SRC = $(wildcard src/*.$(CCSUFFIX) src/*/*.$(CCSUFFIX))
 ALL_OBJ = $(patsubst src/%.$(CCSUFFIX), build/%.o, $(SRC))
 ALL_DEP = $(ALL_OBJ)
 
-
-test: $(TEST)
 
 build/%.o: src/%.$(CCSUFFIX)
 	@mkdir -p $(@D)
@@ -22,17 +20,17 @@ build/%.o: src/%.$(CCSUFFIX)
 	$(CXX) -c $(CFLAGS) -c $< -o $@
 
 
-lib/libtvm.a: $(ALL_DEP)
+lib/libHalideIR.a: $(ALL_DEP)
 	@mkdir -p $(@D)
 	ar crv $@ $(filter %.o, $?)
 
-lib/libtvm.so: $(ALL_DEP)
+lib/libHalideIR.so: $(ALL_DEP)
 	@mkdir -p $(@D)
 	$(CXX) $(CFLAGS) -shared -o $@ $(filter %.o %.a, $^) $(LDFLAGS)
 
 
 lint:
-	python2 dmlc-core/scripts/lint.py tvm cpp include src
+	python2 dmlc-core/scripts/lint.py Halide cpp include src
 
 doc:
 	doxygen docs/Doxyfile
