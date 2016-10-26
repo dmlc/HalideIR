@@ -29,20 +29,36 @@ public:
      * these in your subclass to mutate sub-expressions and
      * sub-statements.
      */
-    EXPORT virtual Expr mutate(Expr expr);
-    EXPORT virtual Stmt mutate(Stmt stmt);
+    EXPORT Expr mutate(Expr expr);
+    EXPORT Stmt mutate(Stmt stmt);
 
-protected:
+private:
     /** Whether the accept returns a new result in expr or stmt */
     bool no_mutation_{false};
 
     /** visit methods that take Exprs assign to this to return their
      * new value */
-    Expr expr;
+    Expr expr_;
 
     /** visit methods that take Stmts assign to this to return their
      * new value */
-    Stmt stmt;
+    Stmt stmt_;
+
+protected:
+    /** visit method call this to return new value */
+    inline void return_value(Expr expr) {
+        expr_ = std::move(expr);
+        no_mutation_ = false;
+    }
+    /** visit method call this to return new value */
+    inline void return_value(Stmt stmt) {
+        stmt_ = std::move(stmt);
+        no_mutation_ = false;
+    }
+    /** visit method call this to indicate no changes has been made */
+    inline void return_self() {
+        no_mutation_ = true;
+    }
 
     EXPORT virtual void visit(const IntImm *);
     EXPORT virtual void visit(const UIntImm *);
