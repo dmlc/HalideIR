@@ -3,19 +3,19 @@
  * \file node.h
  * \brief Defines the Node data structures.
  */
-#ifndef HALIDE_NODE_H
-#define HALIDE_NODE_H
+#ifndef TVM_NODE_H_
+#define TVM_NODE_H_
 
 #include <string>
 #include <vector>
 #include <memory>
 #include <type_traits>
-#include "./Type.h"
+#include "base/Type.h"
 
-namespace Halide {
 /** namespace of new IR ocde */
-namespace IR {
+namespace tvm {
 
+using Halide::Type;
 // forward declaration
 class Node;
 class NodeRef;
@@ -130,9 +130,10 @@ class NodeRef {
   template<typename T, typename>
   friend class Array;
   friend class Node;
+  friend class APIVariantValue;
   NodeRef() = default;
   explicit NodeRef(std::shared_ptr<Node> node) : node_(node) {}
-  /*! \brief the internal node object */
+  /*! \brief the internal node object, do not touch  */
   std::shared_ptr<Node> node_;
 };
 
@@ -181,17 +182,27 @@ inline void NodeRef::reset(std::shared_ptr<Node> node) {
   node_ = node;
 }
 
+}  // namespace tvm
+
+// expose the data structure to HalideIR
+namespace Halide {
+namespace IR {
+
+using tvm::Node;
+using tvm::NodeRef;
+using tvm::AttrVisitor;
+
 }  // namespace IR
 }  // namespace Halide
 
 namespace std {
 template <>
-struct hash<::Halide::IR::NodeRef> {
-  std::size_t operator()(const ::Halide::IR::NodeRef& k) const {
+struct hash<::tvm::NodeRef> {
+  std::size_t operator()(const ::tvm::NodeRef& k) const {
     return k.hash();
   }
 };
 
 }  // namespace std
 
-#endif  // HALIDE_NODE_H
+#endif  // TVM_NODE_H_

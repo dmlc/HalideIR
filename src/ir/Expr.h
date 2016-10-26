@@ -13,7 +13,7 @@
 #include "base/Float16.h"
 #include "base/Type.h"
 #include "base/Util.h"
-#include "base/Node.h"
+#include "tvm/node.h"
 
 namespace Halide {
 namespace Internal {
@@ -172,7 +172,7 @@ struct Expr : public Internal::IRHandle {
     Expr() : Internal::IRHandle() {}
 
     /** Make an expression from a concrete expression node pointer (e.g. Add) */
-    Expr(std::shared_ptr<Internal::BaseExprNode> n) : IRHandle(n) {}
+    Expr(std::shared_ptr<IR::Node> n) : IRHandle(n) {}
 
     /** Make an expression representing numeric constants of various types. */
     // @{
@@ -265,7 +265,7 @@ enum class ForType : int {
 /** A reference-counted handle to a statement node. */
 struct Stmt : public IRHandle {
     Stmt() : IRHandle() {}
-    Stmt(std::shared_ptr<BaseStmtNode> n) : IRHandle(n) {}
+    Stmt(std::shared_ptr<IR::Node> n) : IRHandle(n) {}
 };
 
 
