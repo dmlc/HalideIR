@@ -24,22 +24,7 @@ namespace Internal {
 struct IntImm : public ExprNode<IntImm> {
     int64_t value;
 
-    static const Expr make(Type t, int64_t value) {
-        internal_assert(t.is_int() && t.is_scalar())
-            << "IntImm must be a scalar Int\n";
-        internal_assert(t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
-            << "IntImm must be 8, 16, 32, or 64-bit\n";
-
-        // Normalize the value by dropping the high bits
-        value <<= (64 - t.bits());
-        // Then sign-extending to get them back
-        value >>= (64 - t.bits());
-
-        std::shared_ptr<IntImm> node = std::make_shared<IntImm>();
-        node->type = t;
-        node->value = value;
-        return Expr(node);
-    }
+    static Expr make(Type t, int64_t value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("type", &type);
@@ -53,21 +38,7 @@ struct IntImm : public ExprNode<IntImm> {
 struct UIntImm : public ExprNode<UIntImm> {
     uint64_t value;
 
-    static Expr make(Type t, uint64_t value) {
-        internal_assert(t.is_uint() && t.is_scalar())
-            << "UIntImm must be a scalar UInt\n";
-        internal_assert(t.bits() == 1 || t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
-            << "UIntImm must be 1, 8, 16, 32, or 64-bit\n";
-
-        // Normalize the value by dropping the high bits
-        value <<= (64 - t.bits());
-        value >>= (64 - t.bits());
-
-        std::shared_ptr<UIntImm> node = std::make_shared<UIntImm>();
-        node->type = t;
-        node->value = value;
-        return Expr(node);
-    }
+    static Expr make(Type t, uint64_t value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("type", &type);
@@ -81,27 +52,7 @@ struct UIntImm : public ExprNode<UIntImm> {
 struct FloatImm : public ExprNode<FloatImm> {
     double value;
 
-    static Expr make(Type t, double value) {
-        internal_assert(t.is_float() && t.is_scalar())
-            << "FloatImm must be a scalar Float\n";
-        std::shared_ptr<FloatImm> node = std::make_shared<FloatImm>();
-        node->type = t;
-        switch (t.bits()) {
-        case 16:
-            node->value = (double)((float16_t)value);
-            break;
-        case 32:
-            node->value = (float)value;
-            break;
-        case 64:
-            node->value = value;
-            break;
-        default:
-            internal_error << "FloatImm must be 16, 32, or 64-bit\n";
-        }
-
-        return Expr(node);
-    }
+  static Expr make(Type t, double value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("type", &type);
@@ -115,13 +66,7 @@ struct FloatImm : public ExprNode<FloatImm> {
 struct StringImm : public ExprNode<StringImm> {
     std::string value;
 
-    static Expr make(const std::string &val) {
-        std::shared_ptr<StringImm> node = std::make_shared<StringImm>();
-        node->type = type_of<const char *>();
-        node->value = val;
-        return Expr(node);
-    }
-
+    Expr static make(const std::string &val);
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("type", &type);
         v->Visit("value", &value);
