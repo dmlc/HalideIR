@@ -27,7 +27,7 @@ struct IntImm : public ExprNode<IntImm> {
     static Expr make(Type t, int64_t value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("value", &value);
     }
     static const IRNodeType _type_info = IRNodeType::IntImm;
@@ -41,7 +41,7 @@ struct UIntImm : public ExprNode<UIntImm> {
     static Expr make(Type t, uint64_t value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("value", &value);
     }
     static const IRNodeType _type_info = IRNodeType::UIntImm;
@@ -55,7 +55,7 @@ struct FloatImm : public ExprNode<FloatImm> {
   static Expr make(Type t, double value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("value", &value);
     }
     static const IRNodeType _type_info = IRNodeType::FloatImm;
@@ -68,7 +68,7 @@ struct StringImm : public ExprNode<StringImm> {
 
     Expr static make(const std::string &val);
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("value", &value);
     }
     static const IRNodeType _type_info = IRNodeType::StringImm;
@@ -81,7 +81,7 @@ struct Cast : public ExprNode<Cast> {
 
     EXPORT static Expr make(Type t, Expr v);
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("value", &value);
     }
     static const IRNodeType _type_info = IRNodeType::Cast;
@@ -104,7 +104,7 @@ struct BinaryOpNode : public ExprNode<T> {
        return Expr(node);
     }
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &(this->type));
+        v->Visit("dtype", &(this->type));
         v->Visit("a", &a);
         v->Visit("b", &b);
     }
@@ -171,7 +171,7 @@ struct CmpOpNode : public ExprNode<T> {
         return Expr(node);
     }
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &(this->type));
+        v->Visit("dtype", &(this->type));
         v->Visit("a", &a);
         v->Visit("b", &b);
     }
@@ -220,7 +220,7 @@ struct And : public ExprNode<And> {
     EXPORT static Expr make(Expr a, Expr b);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &(this->type));
+        v->Visit("dtype", &(this->type));
         v->Visit("a", &a);
         v->Visit("b", &b);
     }
@@ -235,7 +235,7 @@ struct Or : public ExprNode<Or> {
     EXPORT static Expr make(Expr a, Expr b);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("a", &a);
         v->Visit("b", &b);
     }
@@ -250,7 +250,7 @@ struct Not : public ExprNode<Not> {
     EXPORT static Expr make(Expr a);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("a", &a);
     }
     static const IRNodeType _type_info = IRNodeType::Not;
@@ -266,7 +266,7 @@ struct Select : public ExprNode<Select> {
     EXPORT static Expr make(Expr condition, Expr true_value, Expr false_value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("condition", &condition);
         v->Visit("true_value", &true_value);
         v->Visit("false_value", &false_value);
@@ -285,7 +285,7 @@ struct Load : public ExprNode<Load> {
     EXPORT static Expr make(Type type, std::string name, Expr index);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("name", &name);
         v->Visit("name", &index);
     }
@@ -305,7 +305,7 @@ struct Ramp : public ExprNode<Ramp> {
     EXPORT static Expr make(Expr base, Expr stride, int lanes);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("base", &base);
         v->Visit("stride", &stride);
         v->Visit("lanes", &lanes);
@@ -324,7 +324,7 @@ struct Broadcast : public ExprNode<Broadcast> {
     EXPORT static Expr make(Expr value, int lanes);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("value", &value);
         v->Visit("lanes", &lanes);
     }
@@ -342,7 +342,7 @@ struct Let : public ExprNode<Let> {
     EXPORT static Expr make(std::string name, Expr value, Expr body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("name", &name);
         v->Visit("value", &value);
         v->Visit("body", &body);
@@ -488,7 +488,7 @@ struct Allocate : public StmtNode<Allocate> {
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("name", &name);
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         // TODO(tqchen)
         // v->Visit("extents", &extents);
         v->Visit("condition", &condition);
@@ -712,7 +712,7 @@ struct Call : public ExprNode<Call> {
     }
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("type", &type);
+        v->Visit("dtype", &type);
         v->Visit("name", &name);
         // TODO(tqchen)
         // v->Visit("args", &args);

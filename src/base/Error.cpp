@@ -1,4 +1,5 @@
 #include "Error.h"
+#define WITH_EXCEPTIONS
 
 namespace Halide {
 
