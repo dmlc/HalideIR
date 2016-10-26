@@ -12,16 +12,19 @@
 #include "base/Error.h"
 #include "base/Float16.h"
 #include "base/Type.h"
-#include "base/IntrusivePtr.h"
 #include "base/Util.h"
+#include "base/Node.h"
 
 namespace Halide {
 namespace Internal {
 
+using IR::Node;
+using IR::NodeRef;
+
 class IRVisitor;
 
 /** All our IR node types get unique IDs for the purposes of RTTI */
-enum class IRNodeType {
+enum class IRNodeType : int {
     IntImm,
     UIntImm,
     FloatImm,
@@ -65,22 +68,13 @@ enum class IRNodeType {
 };
 
 /** The abstract base classes for a node in the Halide IR. */
-struct IRNode {
+struct IRNode : public Node {
 
     /** We use the visitor pattern to traverse IR nodes throughout the
      * compiler, so we have a virtual accept method which accepts
      * visitors.
      */
     virtual void accept(IRVisitor *v) const = 0;
-    IRNode() {}
-    virtual ~IRNode() {}
-
-    /** These classes are all managed with intrusive reference
-       counting, so we also track a reference count. It's mutable
-       so that we can do reference counting even through const
-       references to IR nodes. */
-    mutable RefCount ref_count;
-
     /** Each IR node subclass should return some unique pointer. We
      * can compare these pointers to do runtime type
      * identification. We don't compile with rtti because that
@@ -90,11 +84,6 @@ struct IRNode {
     virtual IRNodeType type_info() const = 0;
 };
 
-template<>
-EXPORT inline RefCount &ref_count<IRNode>(const IRNode *n) {return n->ref_count;}
-
-template<>
-EXPORT inline void destroy<IRNode>(const IRNode *n) {delete n;}
 
 /** IR nodes are split into expressions and statements. These are
    similar to expressions and statements in C - expressions
@@ -122,27 +111,30 @@ struct BaseExprNode : public IRNode {
 template<typename T>
 struct ExprNode : public BaseExprNode {
     EXPORT void accept(IRVisitor *v) const;
-    virtual IRNodeType type_info() const {return T::_type_info;}
+    IRNodeType type_info() const final {return T::_type_info;}
+    const char* type_key() const final {return T::_type_key;}
 };
 
 template<typename T>
 struct StmtNode : public BaseStmtNode {
     EXPORT void accept(IRVisitor *v) const;
-    virtual IRNodeType type_info() const {return T::_type_info;}
+    IRNodeType type_info() const final {return T::_type_info;}
+    const char* type_key() const final {return T::_type_key;}
 };
 
 /** IR nodes are passed around opaque handles to them. This is a
    base class for those handles. It manages the reference count,
    and dispatches visitors. */
-struct IRHandle : public IntrusivePtr<const IRNode> {
-    IRHandle() : IntrusivePtr<const IRNode>() {}
-    IRHandle(const IRNode *p) : IntrusivePtr<const IRNode>(p) {}
+struct IRHandle : public NodeRef {
+    IRHandle() {}
+    IRHandle(Node* p) { node_.reset(p);}
+    IRHandle(std::shared_ptr<Node> p) : NodeRef(p) {}
 
     /** Dispatch to the correct visitor method for this node. E.g. if
      * this node is actually an Add node, then this will call
      * IRVisitor::visit(const Add *) */
     void accept(IRVisitor *v) const {
-        ptr->accept(v);
+        static_cast<const IRNode*>(node_.get())->accept(v);
     }
 
     /** Downcast this ir node to its actual type (e.g. Add, or
@@ -154,102 +146,20 @@ struct IRHandle : public IntrusivePtr<const IRNode> {
      * }
      */
     template<typename T> const T *as() const {
+        const IRNode* ptr = this->get();
         if (ptr && ptr->type_info() == T::_type_info) {
-            return (const T *)ptr;
+            return static_cast<const T*>(ptr);
         }
         return nullptr;
     }
-};
-
-
-/** Integer constants */
-struct IntImm : public ExprNode<IntImm> {
-    int64_t value;
-
-    static const IntImm *make(Type t, int64_t value) {
-        internal_assert(t.is_int() && t.is_scalar())
-            << "IntImm must be a scalar Int\n";
-        internal_assert(t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
-            << "IntImm must be 8, 16, 32, or 64-bit\n";
-
-        // Normalize the value by dropping the high bits
-        value <<= (64 - t.bits());
-        // Then sign-extending to get them back
-        value >>= (64 - t.bits());
-
-        IntImm *node = new IntImm;
-        node->type = t;
-        node->value = value;
-        return node;
+    /** return internal content as IRNode */
+    inline const IRNode* get() const {
+        return static_cast<const IRNode*>(node_.get());
     }
-
-    static const IRNodeType _type_info = IRNodeType::IntImm;
-};
-
-/** Unsigned integer constants */
-struct UIntImm : public ExprNode<UIntImm> {
-    uint64_t value;
-
-    static const UIntImm *make(Type t, uint64_t value) {
-        internal_assert(t.is_uint() && t.is_scalar())
-            << "UIntImm must be a scalar UInt\n";
-        internal_assert(t.bits() == 1 || t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
-            << "UIntImm must be 1, 8, 16, 32, or 64-bit\n";
-
-        // Normalize the value by dropping the high bits
-        value <<= (64 - t.bits());
-        value >>= (64 - t.bits());
-
-        UIntImm *node = new UIntImm;
-        node->type = t;
-        node->value = value;
-        return node;
+    /** return internal content as IRNode */
+    inline const IRNode* operator->() const {
+        return static_cast<const IRNode*>(node_.get());
     }
-
-    static const IRNodeType _type_info = IRNodeType::UIntImm;
-};
-
-/** Floating point constants */
-struct FloatImm : public ExprNode<FloatImm> {
-    double value;
-
-    static const FloatImm *make(Type t, double value) {
-        internal_assert(t.is_float() && t.is_scalar())
-            << "FloatImm must be a scalar Float\n";
-        FloatImm *node = new FloatImm;
-        node->type = t;
-        switch (t.bits()) {
-        case 16:
-            node->value = (double)((float16_t)value);
-            break;
-        case 32:
-            node->value = (float)value;
-            break;
-        case 64:
-            node->value = value;
-            break;
-        default:
-            internal_error << "FloatImm must be 16, 32, or 64-bit\n";
-        }
-
-        return node;
-    }
-
-    static const IRNodeType _type_info = IRNodeType::FloatImm;
-};
-
-/** String constants */
-struct StringImm : public ExprNode<StringImm> {
-    std::string value;
-
-    static const StringImm *make(const std::string &val) {
-        StringImm *node = new StringImm;
-        node->type = type_of<const char *>();
-        node->value = val;
-        return node;
-    }
-
-    static const IRNodeType _type_info = IRNodeType::StringImm;
 };
 
 }  // namespace Internal
@@ -262,44 +172,59 @@ struct Expr : public Internal::IRHandle {
     Expr() : Internal::IRHandle() {}
 
     /** Make an expression from a concrete expression node pointer (e.g. Add) */
-    Expr(const Internal::BaseExprNode *n) : IRHandle(n) {}
-
+    Expr(std::shared_ptr<Internal::BaseExprNode> n) : IRHandle(n) {}
 
     /** Make an expression representing numeric constants of various types. */
     // @{
-    EXPORT explicit Expr(int8_t x)    : IRHandle(Internal::IntImm::make(Int(8), x)) {}
-    EXPORT explicit Expr(int16_t x)   : IRHandle(Internal::IntImm::make(Int(16), x)) {}
-    EXPORT          Expr(int32_t x)   : IRHandle(Internal::IntImm::make(Int(32), x)) {}
-    EXPORT explicit Expr(int64_t x)   : IRHandle(Internal::IntImm::make(Int(64), x)) {}
-    EXPORT explicit Expr(uint8_t x)   : IRHandle(Internal::UIntImm::make(UInt(8), x)) {}
-    EXPORT explicit Expr(uint16_t x)  : IRHandle(Internal::UIntImm::make(UInt(16), x)) {}
-    EXPORT explicit Expr(uint32_t x)  : IRHandle(Internal::UIntImm::make(UInt(32), x)) {}
-    EXPORT explicit Expr(uint64_t x)  : IRHandle(Internal::UIntImm::make(UInt(64), x)) {}
-    EXPORT          Expr(float16_t x) : IRHandle(Internal::FloatImm::make(Float(16), (double)x)) {}
-    EXPORT          Expr(float x)     : IRHandle(Internal::FloatImm::make(Float(32), x)) {}
-    EXPORT explicit Expr(double x)    : IRHandle(Internal::FloatImm::make(Float(64), x)) {}
+    EXPORT explicit Expr(int8_t x);
+    EXPORT explicit Expr(int16_t x);
+    EXPORT          Expr(int32_t x);
+    EXPORT explicit Expr(int64_t x);
+    EXPORT explicit Expr(uint8_t x);
+    EXPORT explicit Expr(uint16_t x);
+    EXPORT explicit Expr(uint32_t x);
+    EXPORT explicit Expr(uint64_t x);
+    EXPORT          Expr(float16_t x);
+    EXPORT          Expr(float x);
+    EXPORT explicit Expr(double x);
     // @}
 
     /** Make an expression representing a const string (i.e. a StringImm) */
-    EXPORT          Expr(const std::string &s) : IRHandle(Internal::StringImm::make(s)) {}
+    EXPORT          Expr(const std::string &s);
 
     /** Get the type of this expression node */
     Type type() const {
-        return ((const Internal::BaseExprNode *)ptr)->type;
+      return (static_cast<const Internal::BaseExprNode *>(node_.get()))->type;
     }
 };
 
 /** This lets you use an Expr as a key in a map of the form
  * map<Expr, Foo, ExprCompare> */
 struct ExprCompare {
-    bool operator()(Expr a, Expr b) const {
+    bool operator()(const Expr& a, const Expr& b) const {
         return a.get() < b.get();
+    }
+};
+
+/** This lets you use an Expr as a key in a unordered_map of the form
+ * unordered_map<Expr, Foo, ExprHash, ExprEqual> */
+struct ExprHash {
+    size_t operator()(const Expr& a) const {
+        return a.hash();
+    }
+};
+
+/** This lets you use an Expr as a key in a unordered_map of the form
+ * unordered_map<Expr, Foo, ExprHash, ExprEqual> */
+struct ExprEqual {
+    bool operator()(const Expr& a, const Expr& b) const {
+        return a.get() == b.get();
     }
 };
 
 /** An enum describing a type of device API. Used by schedules, and in
  * the For loop IR node. */
-enum class DeviceAPI {
+enum class DeviceAPI : int {
     None, /// Used to denote for loops that run on the same device as the containing code.
     Host,
     Default_GPU,
@@ -329,7 +254,7 @@ namespace Internal {
 
 /** An enum describing a type of loop traversal. Used in schedules,
  * and in the For loop IR node. */
-enum class ForType {
+enum class ForType : int {
     Serial,
     Parallel,
     Vectorized,
@@ -340,19 +265,32 @@ enum class ForType {
 /** A reference-counted handle to a statement node. */
 struct Stmt : public IRHandle {
     Stmt() : IRHandle() {}
-    Stmt(const BaseStmtNode *n) : IRHandle(n) {}
-
-    /** This lets you use a Stmt as a key in a map of the form
-     * map<Stmt, Foo, Stmt::Compare> */
-    struct Compare {
-        bool operator()(const Stmt &a, const Stmt &b) const {
-            return a.ptr < b.ptr;
-        }
-    };
+    Stmt(std::shared_ptr<BaseStmtNode> n) : IRHandle(n) {}
 };
 
 
 }  // namespace Internal
 }  // namespace Halide
 
+namespace Halide {
+namespace IR {
+using ::Halide::Expr;
+using Internal::Stmt;
+}  // namespace IR
+}  // namespace Stmt
+
+namespace std {
+template <>
+struct hash<::Halide::Expr> {
+  std::size_t operator()(const ::Halide::Expr& k) const {
+    return k.hash();
+  }
+};
+template <>
+struct hash<::Halide::Internal::Stmt> {
+  std::size_t operator()(const ::Halide::Internal::Stmt& k) const {
+    return k.hash();
+  }
+};
+}
 #endif

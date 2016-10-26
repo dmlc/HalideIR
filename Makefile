@@ -6,15 +6,17 @@ export CFLAGS =  -std=c++11 -Wall -O2  -Wno-unknown-pragmas -funroll-loops\
 # specify tensor path
 .PHONY: clean all test doc
 
+CCSUFFIX=cpp
+
 all: lib/libtvm.a lib/libtvm.so
-SRC = $(wildcard src/*.cpp src/*/*.cpp)
-ALL_OBJ = $(patsubst src/%.cpp, build/%.o, $(SRC))
+SRC = $(wildcard src/*.$(CCSUFFIX) src/*/*.$(CCSUFFIX))
+ALL_OBJ = $(patsubst src/%.$(CCSUFFIX), build/%.o, $(SRC))
 ALL_DEP = $(ALL_OBJ)
 
 
 test: $(TEST)
 
-build/%.o: src/%.cpp
+build/%.o: src/%.$(CCSUFFIX)
 	@mkdir -p $(@D)
 	$(CXX) $(CFLAGS) -MM -MT build/$*.o $< >build/$*.d
 	$(CXX) -c $(CFLAGS) -c $< -o $@

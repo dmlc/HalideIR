@@ -6,74 +6,113 @@ namespace Internal {
 using std::vector;
 
 Expr IRMutator::mutate(Expr e) {
+    no_mutation_ = false;
     if (e.defined()) {
         e.accept(this);
     } else {
         expr = Expr();
     }
     stmt = Stmt();
-    return expr;
+    if (no_mutation_) {
+        return e;
+    } else {
+        return expr;
+    }
 }
 
 Stmt IRMutator::mutate(Stmt s) {
+    no_mutation_ = false;
     if (s.defined()) {
         s.accept(this);
     } else {
         stmt = Stmt();
     }
     expr = Expr();
-    return stmt;
+    if (no_mutation_) {
+        return s;
+    } else {
+       return stmt;
+    }
 }
 
 namespace {
 template<typename T>
-void mutate_binary_operator(IRMutator *mutator, const T *op, Expr *expr, Stmt *stmt) {
+void mutate_binary_operator(IRMutator *mutator, const T *op, Expr *expr, Stmt *stmt, bool* no_mutation) {
     Expr a = mutator->mutate(op->a);
     Expr b = mutator->mutate(op->b);
     if (a.same_as(op->a) &&
         b.same_as(op->b)) {
-        *expr = op;
+        *no_mutation = true;
     } else {
         *expr = T::make(a, b);
     }
-    *stmt = nullptr;
 }
 }
 
-void IRMutator::visit(const IntImm *op)   {expr = op;}
-void IRMutator::visit(const UIntImm *op)   {expr = op;}
-void IRMutator::visit(const FloatImm *op) {expr = op;}
-void IRMutator::visit(const StringImm *op) {expr = op;}
-void IRMutator::visit(const Variable *op) {expr = op;}
+void IRMutator::visit(const IntImm *op)   {no_mutation_ = true;}
+void IRMutator::visit(const UIntImm *op)   {no_mutation_ = true;}
+void IRMutator::visit(const FloatImm *op) {no_mutation_ = true;}
+void IRMutator::visit(const StringImm *op) {no_mutation_ = true;}
+void IRMutator::visit(const Variable *op) {no_mutation_ = true;}
 
 void IRMutator::visit(const Cast *op) {
     Expr value = mutate(op->value);
     if (value.same_as(op->value)) {
-        expr = op;
+        no_mutation_ = true;
     } else {
         expr = Cast::make(op->type, value);
     }
 }
 
-void IRMutator::visit(const Add *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const Sub *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const Mul *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const Div *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const Mod *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const Min *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const Max *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const EQ *op)      {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const NE *op)      {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const LT *op)      {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const LE *op)      {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const GT *op)      {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const GE *op)      {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const And *op)     {mutate_binary_operator(this, op, &expr, &stmt);}
-void IRMutator::visit(const Or *op)      {mutate_binary_operator(this, op, &expr, &stmt);}
+void IRMutator::visit(const Add *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const Sub *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const Mul *op)  {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const Div *op)  {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const Mod *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const Min *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const Max *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const EQ *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const NE *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const LT *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const LE *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const GT *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const GE *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const And *op) {
+    mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
+void IRMutator::visit(const Or *op) {
+  mutate_binary_operator(this, op, &expr, &stmt, &no_mutation_);
+}
 
 void IRMutator::visit(const Not *op) {
     Expr a = mutate(op->a);
-    if (a.same_as(op->a)) expr = op;
+    if (a.same_as(op->a)) no_mutation_ = true;
     else expr = Not::make(a);
 }
 
@@ -84,7 +123,7 @@ void IRMutator::visit(const Select *op)  {
     if (cond.same_as(op->condition) &&
         t.same_as(op->true_value) &&
         f.same_as(op->false_value)) {
-        expr = op;
+        no_mutation_ = true;
     } else {
         expr = Select::make(cond, t, f);
     }
@@ -93,7 +132,7 @@ void IRMutator::visit(const Select *op)  {
 void IRMutator::visit(const Load *op) {
     Expr index = mutate(op->index);
     if (index.same_as(op->index)) {
-        expr = op;
+        no_mutation_ = true;
     } else {
         expr = Load::make(op->type, op->name, index);
     }
@@ -104,7 +143,7 @@ void IRMutator::visit(const Ramp *op) {
     Expr stride = mutate(op->stride);
     if (base.same_as(op->base) &&
         stride.same_as(op->stride)) {
-        expr = op;
+        no_mutation_ = true;
     } else {
         expr = Ramp::make(base, stride, op->lanes);
     }
@@ -112,7 +151,7 @@ void IRMutator::visit(const Ramp *op) {
 
 void IRMutator::visit(const Broadcast *op) {
     Expr value = mutate(op->value);
-    if (value.same_as(op->value)) expr = op;
+    if (value.same_as(op->value)) no_mutation_ = true;
     else expr = Broadcast::make(value, op->lanes);
 }
 
@@ -129,7 +168,7 @@ void IRMutator::visit(const Call *op) {
     }
 
     if (!changed) {
-        expr = op;
+        no_mutation_ = true;
     } else {
         expr = Call::make(op->type, op->name, new_args, op->call_type,
                           op->func, op->value_index);
@@ -141,7 +180,7 @@ void IRMutator::visit(const Let *op) {
     Expr body = mutate(op->body);
     if (value.same_as(op->value) &&
         body.same_as(op->body)) {
-        expr = op;
+        no_mutation_ = true;
     } else {
         expr = Let::make(op->name, value, body);
     }
@@ -152,7 +191,7 @@ void IRMutator::visit(const LetStmt *op) {
     Stmt body = mutate(op->body);
     if (value.same_as(op->value) &&
         body.same_as(op->body)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = LetStmt::make(op->name, value, body);
     }
@@ -163,7 +202,7 @@ void IRMutator::visit(const AssertStmt *op) {
     Expr message = mutate(op->message);
 
     if (condition.same_as(op->condition) && message.same_as(op->message)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = AssertStmt::make(condition, message);
     }
@@ -172,7 +211,7 @@ void IRMutator::visit(const AssertStmt *op) {
 void IRMutator::visit(const ProducerConsumer *op) {
     Stmt body = mutate(op->body);
     if (body.same_as(op->body)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = ProducerConsumer::make(op->name, op->is_producer, body);
     }
@@ -185,7 +224,7 @@ void IRMutator::visit(const For *op) {
     if (min.same_as(op->min) &&
         extent.same_as(op->extent) &&
         body.same_as(op->body)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = For::make(op->name, min, extent, op->for_type, op->device_api, body);
     }
@@ -195,7 +234,7 @@ void IRMutator::visit(const Store *op) {
     Expr value = mutate(op->value);
     Expr index = mutate(op->index);
     if (value.same_as(op->value) && index.same_as(op->index)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = Store::make(op->name, value, index);
     }
@@ -222,7 +261,7 @@ void IRMutator::visit(const Provide *op) {
     }
 
     if (!changed) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = Provide::make(op->name, new_values, new_args);
     }
@@ -245,14 +284,14 @@ void IRMutator::visit(const Allocate *op) {
         body.same_as(op->body) &&
         condition.same_as(op->condition) &&
         new_expr.same_as(op->new_expr)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = Allocate::make(op->name, op->type, new_extents, condition, body, new_expr, op->free_function);
     }
 }
 
 void IRMutator::visit(const Free *op) {
-    stmt = op;
+    no_mutation_ = true;
 }
 
 void IRMutator::visit(const Realize *op) {
@@ -275,7 +314,7 @@ void IRMutator::visit(const Realize *op) {
     if (!bounds_changed &&
         body.same_as(op->body) &&
         condition.same_as(op->condition)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = Realize::make(op->name, op->types, new_bounds,
                              condition, body);
@@ -287,7 +326,7 @@ void IRMutator::visit(const Block *op) {
     Stmt rest = mutate(op->rest);
     if (first.same_as(op->first) &&
         rest.same_as(op->rest)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = Block::make(first, rest);
     }
@@ -300,7 +339,7 @@ void IRMutator::visit(const IfThenElse *op) {
     if (condition.same_as(op->condition) &&
         then_case.same_as(op->then_case) &&
         else_case.same_as(op->else_case)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = IfThenElse::make(condition, then_case, else_case);
     }
@@ -309,7 +348,7 @@ void IRMutator::visit(const IfThenElse *op) {
 void IRMutator::visit(const Evaluate *op) {
     Expr v = mutate(op->value);
     if (v.same_as(op->value)) {
-        stmt = op;
+        no_mutation_ = true;
     } else {
         stmt = Evaluate::make(v);
     }

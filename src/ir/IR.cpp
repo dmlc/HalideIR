@@ -3,175 +3,32 @@
 #include "IRVisitor.h"
 
 namespace Halide {
+
+Expr::Expr(int8_t x) : Expr(Internal::IntImm::make(Int(8), x)) {}
+Expr::Expr(int16_t x) : Expr(Internal::IntImm::make(Int(16), x)) {}
+Expr::Expr(int32_t x) : Expr(Internal::IntImm::make(Int(32), x)) {}
+Expr::Expr(int64_t x) : Expr(Internal::IntImm::make(Int(64), x)) {}
+Expr::Expr(uint8_t x) : Expr(Internal::UIntImm::make(UInt(8), x)) {}
+Expr::Expr(uint16_t x) : IRHandle(Internal::UIntImm::make(UInt(16), x)) {}
+Expr::Expr(uint32_t x) : IRHandle(Internal::UIntImm::make(UInt(32), x)) {}
+Expr::Expr(uint64_t x) : IRHandle(Internal::UIntImm::make(UInt(64), x)) {}
+Expr::Expr(float16_t x) : IRHandle(Internal::FloatImm::make(Float(16), (double)x)) {}
+Expr::Expr(float x) : IRHandle(Internal::FloatImm::make(Float(32), x)) {}
+Expr::Expr(double x) : IRHandle(Internal::FloatImm::make(Float(64), x)) {}
+Expr::Expr(const std::string &s) : IRHandle(Internal::StringImm::make(s)) {}
+
 namespace Internal {
 
 Expr Cast::make(Type t, Expr v) {
     internal_assert(v.defined()) << "Cast of undefined\n";
     internal_assert(t.lanes() == v.type().lanes()) << "Cast may not change vector widths\n";
 
-    Cast *node = new Cast;
+    std::shared_ptr<Cast> node = std::make_shared<Cast>();
     node->type = t;
     node->value = v;
-    return node;
+    return Expr(node);
 }
 
-Expr Add::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Add of undefined\n";
-    internal_assert(b.defined()) << "Add of undefined\n";
-    internal_assert(a.type() == b.type()) << "Add of mismatched types\n";
-
-    Add *node = new Add;
-    node->type = a.type();
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr Sub::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Sub of undefined\n";
-    internal_assert(b.defined()) << "Sub of undefined\n";
-    internal_assert(a.type() == b.type()) << "Sub of mismatched types\n";
-
-    Sub *node = new Sub;
-    node->type = a.type();
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr Mul::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Mul of undefined\n";
-    internal_assert(b.defined()) << "Mul of undefined\n";
-    internal_assert(a.type() == b.type()) << "Mul of mismatched types\n";
-
-    Mul *node = new Mul;
-    node->type = a.type();
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr Div::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Div of undefined\n";
-    internal_assert(b.defined()) << "Div of undefined\n";
-    internal_assert(a.type() == b.type()) << "Div of mismatched types\n";
-
-    Div *node = new Div;
-    node->type = a.type();
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr Mod::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Mod of undefined\n";
-    internal_assert(b.defined()) << "Mod of undefined\n";
-    internal_assert(a.type() == b.type()) << "Mod of mismatched types\n";
-
-    Mod *node = new Mod;
-    node->type = a.type();
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr Min::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Min of undefined\n";
-    internal_assert(b.defined()) << "Min of undefined\n";
-    internal_assert(a.type() == b.type()) << "Min of mismatched types\n";
-
-    Min *node = new Min;
-    node->type = a.type();
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr Max::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Max of undefined\n";
-    internal_assert(b.defined()) << "Max of undefined\n";
-    internal_assert(a.type() == b.type()) << "Max of mismatched types\n";
-
-    Max *node = new Max;
-    node->type = a.type();
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr EQ::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "EQ of undefined\n";
-    internal_assert(b.defined()) << "EQ of undefined\n";
-    internal_assert(a.type() == b.type()) << "EQ of mismatched types\n";
-
-    EQ *node = new EQ;
-    node->type = Bool(a.type().lanes());
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr NE::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "NE of undefined\n";
-    internal_assert(b.defined()) << "NE of undefined\n";
-    internal_assert(a.type() == b.type()) << "NE of mismatched types\n";
-
-    NE *node = new NE;
-    node->type = Bool(a.type().lanes());
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr LT::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "LT of undefined\n";
-    internal_assert(b.defined()) << "LT of undefined\n";
-    internal_assert(a.type() == b.type()) << "LT of mismatched types\n";
-
-    LT *node = new LT;
-    node->type = Bool(a.type().lanes());
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-
-Expr LE::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "LE of undefined\n";
-    internal_assert(b.defined()) << "LE of undefined\n";
-    internal_assert(a.type() == b.type()) << "LE of mismatched types\n";
-
-    LE *node = new LE;
-    node->type = Bool(a.type().lanes());
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-Expr GT::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "GT of undefined\n";
-    internal_assert(b.defined()) << "GT of undefined\n";
-    internal_assert(a.type() == b.type()) << "GT of mismatched types\n";
-
-    GT *node = new GT;
-    node->type = Bool(a.type().lanes());
-    node->a = a;
-    node->b = b;
-    return node;
-}
-
-
-Expr GE::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "GE of undefined\n";
-    internal_assert(b.defined()) << "GE of undefined\n";
-    internal_assert(a.type() == b.type()) << "GE of mismatched types\n";
-
-    GE *node = new GE;
-    node->type = Bool(a.type().lanes());
-    node->a = a;
-    node->b = b;
-    return node;
-}
 
 Expr And::make(Expr a, Expr b) {
     internal_assert(a.defined()) << "And of undefined\n";
@@ -180,11 +37,11 @@ Expr And::make(Expr a, Expr b) {
     internal_assert(b.type().is_bool()) << "rhs of And is not a bool\n";
     internal_assert(a.type() == b.type()) << "And of mismatched types\n";
 
-    And *node = new And;
+    std::shared_ptr<And> node = std::make_shared<And>();
     node->type = Bool(a.type().lanes());
     node->a = a;
     node->b = b;
-    return node;
+    return Expr(node);
 }
 
 Expr Or::make(Expr a, Expr b) {
@@ -194,21 +51,20 @@ Expr Or::make(Expr a, Expr b) {
     internal_assert(b.type().is_bool()) << "rhs of Or is not a bool\n";
     internal_assert(a.type() == b.type()) << "Or of mismatched types\n";
 
-    Or *node = new Or;
+    std::shared_ptr<Or> node = std::make_shared<Or>();
     node->type = Bool(a.type().lanes());
     node->a = a;
     node->b = b;
-    return node;
+    return Expr(node);
 }
 
 Expr Not::make(Expr a) {
     internal_assert(a.defined()) << "Not of undefined\n";
     internal_assert(a.type().is_bool()) << "argument of Not is not a bool\n";
-
-    Not *node = new Not;
+    std::shared_ptr<Not> node = std::make_shared<Not>();
     node->type = Bool(a.type().lanes());
     node->a = a;
-    return node;
+    return Expr(node);
 }
 
 Expr Select::make(Expr condition, Expr true_value, Expr false_value) {
@@ -221,24 +77,27 @@ Expr Select::make(Expr condition, Expr true_value, Expr false_value) {
                     condition.type().lanes() == true_value.type().lanes())
         << "In Select, vector lanes of condition must either be 1, or equal to vector lanes of arguments\n";
 
-    Select *node = new Select;
+    std::shared_ptr<Select> node = std::make_shared<Select>();
     node->type = true_value.type();
     node->condition = condition;
     node->true_value = true_value;
     node->false_value = false_value;
-    return node;
+    return Expr(node);
 }
+
 
 Expr Load::make(Type type, std::string name, Expr index) {
     internal_assert(index.defined()) << "Load of undefined\n";
     internal_assert(type.lanes() == index.type().lanes()) << "Vector lanes of Load must match vector lanes of index\n";
 
-    Load *node = new Load;
+    std::shared_ptr<Load> node = std::make_shared<Load>();
     node->type = type;
     node->name = name;
     node->index = index;
-    return node;
+
+    return Expr(node);
 }
+
 
 Expr Ramp::make(Expr base, Expr stride, int lanes) {
     internal_assert(base.defined()) << "Ramp of undefined\n";
@@ -247,68 +106,67 @@ Expr Ramp::make(Expr base, Expr stride, int lanes) {
     internal_assert(stride.type().is_scalar()) << "Ramp with vector stride\n";
     internal_assert(lanes > 1) << "Ramp of lanes <= 1\n";
     internal_assert(stride.type() == base.type()) << "Ramp of mismatched types\n";
-
-    Ramp *node = new Ramp;
+    std::shared_ptr<Ramp> node = std::make_shared<Ramp>();
+    internal_assert(base.defined()) << "Ramp of undefined\n";
     node->type = base.type().with_lanes(lanes);
     node->base = base;
     node->stride = stride;
     node->lanes = lanes;
-    return node;
+    return Expr(node);
 }
 
 Expr Broadcast::make(Expr value, int lanes) {
     internal_assert(value.defined()) << "Broadcast of undefined\n";
     internal_assert(value.type().is_scalar()) << "Broadcast of vector\n";
     internal_assert(lanes != 1) << "Broadcast of lanes 1\n";
-
-    Broadcast *node = new Broadcast;
+    std::shared_ptr<Broadcast> node = std::make_shared<Broadcast>();
     node->type = value.type().with_lanes(lanes);
     node->value = value;
     node->lanes = lanes;
-    return node;
+    return Expr(node);
 }
 
 Expr Let::make(std::string name, Expr value, Expr body) {
     internal_assert(value.defined()) << "Let of undefined\n";
     internal_assert(body.defined()) << "Let of undefined\n";
 
-    Let *node = new Let;
+    std::shared_ptr<Let> node = std::make_shared<Let>();
     node->type = body.type();
     node->name = name;
     node->value = value;
     node->body = body;
-    return node;
+    return Expr(node);
 }
 
 Stmt LetStmt::make(std::string name, Expr value, Stmt body) {
     internal_assert(value.defined()) << "Let of undefined\n";
     internal_assert(body.defined()) << "Let of undefined\n";
 
-    LetStmt *node = new LetStmt;
+    std::shared_ptr<LetStmt> node = std::make_shared<LetStmt>();
     node->name = name;
     node->value = value;
     node->body = body;
-    return node;
+    return Stmt(node);
 }
 
 Stmt AssertStmt::make(Expr condition, Expr message) {
     internal_assert(condition.defined()) << "AssertStmt of undefined\n";
     internal_assert(message.type() == Int(32)) << "AssertStmt message must be an int:" << message << "\n";
 
-    AssertStmt *node = new AssertStmt;
+    std::shared_ptr<AssertStmt> node = std::make_shared<AssertStmt>();
     node->condition = condition;
     node->message = message;
-    return node;
+    return Stmt(node);
 }
 
 Stmt ProducerConsumer::make(std::string name, bool is_producer, Stmt body) {
     internal_assert(body.defined()) << "ProducerConsumer of undefined\n";
 
-    ProducerConsumer *node = new ProducerConsumer;
+    std::shared_ptr<ProducerConsumer> node = std::make_shared<ProducerConsumer>();
     node->name = name;
     node->is_producer = is_producer;
     node->body = body;
-    return node;
+    return Stmt(node);
 }
 
 Stmt For::make(std::string name, Expr min, Expr extent, ForType for_type, DeviceAPI device_api, Stmt body) {
@@ -318,25 +176,25 @@ Stmt For::make(std::string name, Expr min, Expr extent, ForType for_type, Device
     internal_assert(extent.type().is_scalar()) << "For with vector extent\n";
     internal_assert(body.defined()) << "For of undefined\n";
 
-    For *node = new For;
+    std::shared_ptr<For> node = std::make_shared<For>();
     node->name = name;
     node->min = min;
     node->extent = extent;
     node->for_type = for_type;
     node->device_api = device_api;
     node->body = body;
-    return node;
+    return Stmt(node);
 }
 
 Stmt Store::make(std::string name, Expr value, Expr index) {
     internal_assert(value.defined()) << "Store of undefined\n";
     internal_assert(index.defined()) << "Store of undefined\n";
 
-    Store *node = new Store;
+    std::shared_ptr<Store> node = std::make_shared<Store>();
     node->name = name;
     node->value = value;
     node->index = index;
-    return node;
+    return Stmt(node);
 }
 
 Stmt Provide::make(std::string name, const std::vector<Expr> &values, const std::vector<Expr> &args) {
@@ -348,11 +206,11 @@ Stmt Provide::make(std::string name, const std::vector<Expr> &values, const std:
         internal_assert(args[i].defined()) << "Provide to undefined location\n";
     }
 
-    Provide *node = new Provide;
+    std::shared_ptr<Provide> node = std::make_shared<Provide>();
     node->name = name;
     node->values = values;
     node->args = args;
-    return node;
+    return Stmt(node);
 }
 
 Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extents,
@@ -366,7 +224,7 @@ Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extent
     internal_assert(condition.defined()) << "Allocate with undefined condition\n";
     internal_assert(condition.type().is_bool()) << "Allocate condition is not boolean\n";
 
-    Allocate *node = new Allocate;
+    std::shared_ptr<Allocate> node = std::make_shared<Allocate>();
     node->name = name;
     node->type = type;
     node->extents = extents;
@@ -374,7 +232,7 @@ Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extent
     node->free_function = free_function;
     node->condition = condition;
     node->body = body;
-    return node;
+    return Stmt(node);
 }
 
 int32_t Allocate::constant_allocation_size(const std::vector<Expr> &extents, const std::string &name) {
@@ -413,9 +271,9 @@ int32_t Allocate::constant_allocation_size() const {
 }
 
 Stmt Free::make(std::string name) {
-    Free *node = new Free;
+    std::shared_ptr<Free> node = std::make_shared<Free>();
     node->name = name;
-    return node;
+    return Stmt(node);
 }
 
 Stmt Realize::make(const std::string &name, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body) {
@@ -430,20 +288,20 @@ Stmt Realize::make(const std::string &name, const std::vector<Type> &types, cons
     internal_assert(condition.defined()) << "Realize with undefined condition\n";
     internal_assert(condition.type().is_bool()) << "Realize condition is not boolean\n";
 
-    Realize *node = new Realize;
+    std::shared_ptr<Realize> node = std::make_shared<Realize>();
     node->name = name;
     node->types = types;
     node->bounds = bounds;
     node->condition = condition;
     node->body = body;
-    return node;
+    return Stmt(node);
 }
 
 Stmt Block::make(Stmt first, Stmt rest) {
     internal_assert(first.defined()) << "Block of undefined\n";
     internal_assert(rest.defined()) << "Block of undefined\n";
 
-    Block *node = new Block;
+    std::shared_ptr<Block> node = std::make_shared<Block>();
 
     if (const Block *b = first.as<Block>()) {
         // Use a canonical block nesting order
@@ -454,7 +312,7 @@ Stmt Block::make(Stmt first, Stmt rest) {
         node->rest = rest;
     }
 
-    return node;
+    return Stmt(node);
 }
 
 Stmt Block::make(const std::vector<Stmt> &stmts) {
@@ -472,23 +330,23 @@ Stmt IfThenElse::make(Expr condition, Stmt then_case, Stmt else_case) {
     internal_assert(condition.defined() && then_case.defined()) << "IfThenElse of undefined\n";
     // else_case may be null.
 
-    IfThenElse *node = new IfThenElse;
+    std::shared_ptr<IfThenElse> node = std::make_shared<IfThenElse>();
     node->condition = condition;
     node->then_case = then_case;
     node->else_case = else_case;
-    return node;
+    return Stmt(node);
 }
 
 Stmt Evaluate::make(Expr v) {
     internal_assert(v.defined()) << "Evaluate of undefined\n";
 
-    Evaluate *node = new Evaluate;
+    std::shared_ptr<Evaluate> node = std::make_shared<Evaluate>();
     node->value = v;
-    return node;
+    return Stmt(node);
 }
 
 Expr Call::make(Type type, std::string name, const std::vector<Expr> &args, CallType call_type,
-                IntrusivePtr<const IRNode> func, int value_index) {
+                std::shared_ptr<const IRNode> func, int value_index) {
     for (size_t i = 0; i < args.size(); i++) {
         internal_assert(args[i].defined()) << "Call of undefined\n";
     }
@@ -499,21 +357,21 @@ Expr Call::make(Type type, std::string name, const std::vector<Expr> &args, Call
         }
     }
 
-    Call *node = new Call;
+    std::shared_ptr<Call> node = std::make_shared<Call>();
     node->type = type;
     node->name = name;
     node->args = args;
     node->call_type = call_type;
     node->func = func;
     node->value_index = value_index;
-    return node;
+    return Expr(node);
 }
 
 Expr Variable::make(Type type, std::string name_hint) {
-    Variable *node = new Variable;
+    std::shared_ptr<Variable> node = std::make_shared<Variable>();
     node->type = type;
     node->name_hint = name_hint;
-    return node;
+    return Expr(node);
 }
 
 template<> void ExprNode<IntImm>::accept(IRVisitor *v) const { v->visit((const IntImm *)this); }

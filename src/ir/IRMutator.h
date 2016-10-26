@@ -6,6 +6,7 @@
  */
 
 #include "IRVisitor.h"
+#include <unordered_map>
 
 namespace Halide {
 namespace Internal {
@@ -32,6 +33,8 @@ public:
     EXPORT virtual Stmt mutate(Stmt stmt);
 
 protected:
+    /** Whether the accept returns a new result in expr or stmt */
+    bool no_mutation_{false};
 
     /** visit methods that take Exprs assign to this to return their
      * new value */
@@ -89,8 +92,8 @@ protected:
  * them. */
 class IRGraphMutator : public IRMutator {
 protected:
-    std::map<Expr, Expr, ExprCompare> expr_replacements;
-    std::map<Stmt, Stmt, Stmt::Compare> stmt_replacements;
+    std::unordered_map<Expr, Expr, ExprHash, ExprEqual> expr_replacements;
+    std::unordered_map<Stmt, Stmt> stmt_replacements;
 
 public:
     EXPORT Stmt mutate(Stmt s);

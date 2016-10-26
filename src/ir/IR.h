@@ -10,7 +10,6 @@
 
 #include "base/Debug.h"
 #include "base/Error.h"
-#include "base/IntrusivePtr.h"
 #include "base/Type.h"
 #include "base/Util.h"
 #include "Expr.h"
@@ -21,132 +20,252 @@ namespace Internal {
 /** The actual IR nodes begin here. Remember that all the Expr
  * nodes also have a public "type" property */
 
+/** Integer constants */
+struct IntImm : public ExprNode<IntImm> {
+    int64_t value;
+
+    static const Expr make(Type t, int64_t value) {
+        internal_assert(t.is_int() && t.is_scalar())
+            << "IntImm must be a scalar Int\n";
+        internal_assert(t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
+            << "IntImm must be 8, 16, 32, or 64-bit\n";
+
+        // Normalize the value by dropping the high bits
+        value <<= (64 - t.bits());
+        // Then sign-extending to get them back
+        value >>= (64 - t.bits());
+
+        std::shared_ptr<IntImm> node = std::make_shared<IntImm>();
+        node->type = t;
+        node->value = value;
+        return Expr(node);
+    }
+
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("value", &value);
+    }
+    static const IRNodeType _type_info = IRNodeType::IntImm;
+    static constexpr const char* _type_key = "IntImm";
+};
+
+/** Unsigned integer constants */
+struct UIntImm : public ExprNode<UIntImm> {
+    uint64_t value;
+
+    static Expr make(Type t, uint64_t value) {
+        internal_assert(t.is_uint() && t.is_scalar())
+            << "UIntImm must be a scalar UInt\n";
+        internal_assert(t.bits() == 1 || t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
+            << "UIntImm must be 1, 8, 16, 32, or 64-bit\n";
+
+        // Normalize the value by dropping the high bits
+        value <<= (64 - t.bits());
+        value >>= (64 - t.bits());
+
+        std::shared_ptr<UIntImm> node = std::make_shared<UIntImm>();
+        node->type = t;
+        node->value = value;
+        return Expr(node);
+    }
+
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("value", &value);
+    }
+    static const IRNodeType _type_info = IRNodeType::UIntImm;
+    static constexpr const char* _type_key = "UIntImm";
+};
+
+/** Floating point constants */
+struct FloatImm : public ExprNode<FloatImm> {
+    double value;
+
+    static Expr make(Type t, double value) {
+        internal_assert(t.is_float() && t.is_scalar())
+            << "FloatImm must be a scalar Float\n";
+        std::shared_ptr<FloatImm> node = std::make_shared<FloatImm>();
+        node->type = t;
+        switch (t.bits()) {
+        case 16:
+            node->value = (double)((float16_t)value);
+            break;
+        case 32:
+            node->value = (float)value;
+            break;
+        case 64:
+            node->value = value;
+            break;
+        default:
+            internal_error << "FloatImm must be 16, 32, or 64-bit\n";
+        }
+
+        return Expr(node);
+    }
+
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("value", &value);
+    }
+    static const IRNodeType _type_info = IRNodeType::FloatImm;
+    static constexpr const char* _type_key = "FloatImm";
+};
+
+/** String constants */
+struct StringImm : public ExprNode<StringImm> {
+    std::string value;
+
+    static Expr make(const std::string &val) {
+        std::shared_ptr<StringImm> node = std::make_shared<StringImm>();
+        node->type = type_of<const char *>();
+        node->value = val;
+        return Expr(node);
+    }
+
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("value", &value);
+    }
+    static const IRNodeType _type_info = IRNodeType::StringImm;
+    static constexpr const char* _type_key = "StringImm";
+};
+
 /** Cast a node from one type to another. Can't change vector widths. */
 struct Cast : public ExprNode<Cast> {
     Expr value;
 
     EXPORT static Expr make(Type t, Expr v);
-
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("value", &value);
+    }
     static const IRNodeType _type_info = IRNodeType::Cast;
+    static constexpr const char* _type_key = "Cast";
 };
 
-/** The sum of two expressions */
-struct Add : public ExprNode<Add> {
+/** base class of all Binary arithematic ops */
+template<typename T>
+struct BinaryOpNode : public ExprNode<T> {
     Expr a, b;
 
-    EXPORT static Expr make(Expr a, Expr b);
+    EXPORT static Expr make(Expr a, Expr b) {
+       internal_assert(a.defined()) << "BinaryOp of undefined\n";
+       internal_assert(b.defined()) << "BinaryOp of undefined\n";
+       internal_assert(a.type() == b.type()) << "BinaryOp of mismatched types\n";
+       std::shared_ptr<T> node = std::make_shared<T>();
+       node->type = a.type();
+       node->a = a;
+       node->b = b;
+       return Expr(node);
+    }
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &(this->type));
+        v->Visit("a", &a);
+        v->Visit("b", &b);
+    }
+};
 
+
+/** The sum of two expressions */
+struct Add : public BinaryOpNode<Add> {
     static const IRNodeType _type_info = IRNodeType::Add;
+    static constexpr const char* _type_key = "Add";
 };
 
 /** The difference of two expressions */
-struct Sub : public ExprNode<Sub> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct Sub : public BinaryOpNode<Sub> {
     static const IRNodeType _type_info = IRNodeType::Sub;
+    static constexpr const char* _type_key = "Sub";
 };
 
 /** The product of two expressions */
-struct Mul : public ExprNode<Mul> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct Mul : public BinaryOpNode<Mul> {
     static const IRNodeType _type_info = IRNodeType::Mul;
+    static constexpr const char* _type_key = "Mul";
 };
 
 /** The ratio of two expressions */
-struct Div : public ExprNode<Div> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct Div : public BinaryOpNode<Div> {
     static const IRNodeType _type_info = IRNodeType::Div;
+    static constexpr const char* _type_key = "Div";
 };
 
 /** The remainder of a / b. Mostly equivalent to '%' in C, except that
  * the result here is always positive. For floats, this is equivalent
  * to calling fmod. */
-struct Mod : public ExprNode<Mod> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct Mod : public BinaryOpNode<Mod> {
     static const IRNodeType _type_info = IRNodeType::Mod;
+    static constexpr const char* _type_key = "Mod";
 };
 
 /** The lesser of two values. */
-struct Min : public ExprNode<Min> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct Min : public BinaryOpNode<Min> {
     static const IRNodeType _type_info = IRNodeType::Min;
+    static constexpr const char* _type_key = "Min";
 };
 
 /** The greater of two values */
-struct Max : public ExprNode<Max> {
+struct Max : public BinaryOpNode<Max> {
+    static const IRNodeType _type_info = IRNodeType::Max;
+    static constexpr const char* _type_key = "Max";
+};
+
+/** base class of all comparison ops */
+template<typename T>
+struct CmpOpNode : public ExprNode<T> {
     Expr a, b;
 
-    EXPORT static Expr make(Expr a, Expr b);
-
-    static const IRNodeType _type_info = IRNodeType::Max;
+    EXPORT static Expr make(Expr a, Expr b) {
+        internal_assert(a.defined()) << "CmpOp of undefined\n";
+        internal_assert(b.defined()) << "CmpOp of undefined\n";
+        internal_assert(a.type() == b.type()) << "BinaryOp of mismatched types\n";
+        std::shared_ptr<T> node = std::make_shared<T>();
+        node->type = Bool(a.type().lanes());
+        node->a = a;
+        node->b = b;
+        return Expr(node);
+    }
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &(this->type));
+        v->Visit("a", &a);
+        v->Visit("b", &b);
+    }
 };
 
 /** Is the first expression equal to the second */
-struct EQ : public ExprNode<EQ> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct EQ : public CmpOpNode<EQ> {
     static const IRNodeType _type_info = IRNodeType::EQ;
+    static constexpr const char* _type_key = "EQ";
 };
 
 /** Is the first expression not equal to the second */
-struct NE : public ExprNode<NE> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct NE : public CmpOpNode<NE> {
     static const IRNodeType _type_info = IRNodeType::NE;
+    static constexpr const char* _type_key = "NE";
 };
 
 /** Is the first expression less than the second. */
-struct LT : public ExprNode<LT> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct LT : public CmpOpNode<LT> {
     static const IRNodeType _type_info = IRNodeType::LT;
+    static constexpr const char* _type_key = "LT";
 };
 
 /** Is the first expression less than or equal to the second. */
-struct LE : public ExprNode<LE> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct LE : public CmpOpNode<LE> {
     static const IRNodeType _type_info = IRNodeType::LE;
+    static constexpr const char* _type_key = "LE";
 };
 
 /** Is the first expression greater than the second. */
-struct GT : public ExprNode<GT> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct GT : public CmpOpNode<GT> {
     static const IRNodeType _type_info = IRNodeType::GT;
+    static constexpr const char* _type_key = "GT";
 };
 
 /** Is the first expression greater than or equal to the second. */
-struct GE : public ExprNode<GE> {
-    Expr a, b;
-
-    EXPORT static Expr make(Expr a, Expr b);
-
+struct GE : public CmpOpNode<GE> {
     static const IRNodeType _type_info = IRNodeType::GE;
+    static constexpr const char* _type_key = "GE";
 };
 
 /** Logical and - are both expressions true */
@@ -155,7 +274,13 @@ struct And : public ExprNode<And> {
 
     EXPORT static Expr make(Expr a, Expr b);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &(this->type));
+        v->Visit("a", &a);
+        v->Visit("b", &b);
+    }
     static const IRNodeType _type_info = IRNodeType::And;
+    static constexpr const char* _type_key = "And";
 };
 
 /** Logical or - is at least one of the expression true */
@@ -164,7 +289,13 @@ struct Or : public ExprNode<Or> {
 
     EXPORT static Expr make(Expr a, Expr b);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("a", &a);
+        v->Visit("b", &b);
+    }
     static const IRNodeType _type_info = IRNodeType::Or;
+    static constexpr const char* _type_key = "Or";
 };
 
 /** Logical not - true if the expression false */
@@ -173,7 +304,12 @@ struct Not : public ExprNode<Not> {
 
     EXPORT static Expr make(Expr a);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("a", &a);
+    }
     static const IRNodeType _type_info = IRNodeType::Not;
+    static constexpr const char* _type_key = "Not";
 };
 
 /** A ternary operator. Evalutes 'true_value' and 'false_value',
@@ -184,7 +320,14 @@ struct Select : public ExprNode<Select> {
 
     EXPORT static Expr make(Expr condition, Expr true_value, Expr false_value);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("condition", &condition);
+        v->Visit("true_value", &true_value);
+        v->Visit("false_value", &false_value);
+    }
     static const IRNodeType _type_info = IRNodeType::Select;
+    static constexpr const char* _type_key = "Select";
 };
 
 /** Load a value from a named buffer. The buffer is treated as an
@@ -196,7 +339,13 @@ struct Load : public ExprNode<Load> {
 
     EXPORT static Expr make(Type type, std::string name, Expr index);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("name", &name);
+        v->Visit("name", &index);
+    }
     static const IRNodeType _type_info = IRNodeType::Load;
+    static constexpr const char* _type_key = "Load";
 };
 
 /** A linear ramp vector node. This is vector with 'lanes' elements,
@@ -210,7 +359,14 @@ struct Ramp : public ExprNode<Ramp> {
 
     EXPORT static Expr make(Expr base, Expr stride, int lanes);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("base", &base);
+        v->Visit("stride", &stride);
+        v->Visit("lanes", &lanes);
+    }
     static const IRNodeType _type_info = IRNodeType::Ramp;
+    static constexpr const char* _type_key = "Ramp";
 };
 
 /** A vector with 'lanes' elements, in which every element is
@@ -222,7 +378,13 @@ struct Broadcast : public ExprNode<Broadcast> {
 
     EXPORT static Expr make(Expr value, int lanes);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("value", &value);
+        v->Visit("lanes", &lanes);
+    }
     static const IRNodeType _type_info = IRNodeType::Broadcast;
+    static constexpr const char* _type_key = "Broadcast";
 };
 
 /** A let expression, like you might find in a functional
@@ -234,7 +396,14 @@ struct Let : public ExprNode<Let> {
 
     EXPORT static Expr make(std::string name, Expr value, Expr body);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("name", &name);
+        v->Visit("value", &value);
+        v->Visit("body", &body);
+    }
     static const IRNodeType _type_info = IRNodeType::Let;
+    static constexpr const char* _type_key = "Let";
 };
 
 /** The statement form of a let node. Within the statement 'body',
@@ -246,7 +415,13 @@ struct LetStmt : public StmtNode<LetStmt> {
 
     EXPORT static Stmt make(std::string name, Expr value, Stmt body);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+        v->Visit("value", &value);
+        v->Visit("body", &body);
+    }
     static const IRNodeType _type_info = IRNodeType::LetStmt;
+    static constexpr const char* _type_key = "LetStmt";
 };
 
 /** If the 'condition' is false, then evaluate and return the message,
@@ -258,7 +433,12 @@ struct AssertStmt : public StmtNode<AssertStmt> {
 
     EXPORT static Stmt make(Expr condition, Expr message);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("condition", &condition);
+        v->Visit("message", &message);
+    }
     static const IRNodeType _type_info = IRNodeType::AssertStmt;
+    static constexpr const char* _type_key = "AssertStmt";
 };
 
 /** This node is a helpful annotation to do with permissions. If 'is_produce' is
@@ -279,7 +459,13 @@ struct ProducerConsumer : public StmtNode<ProducerConsumer> {
 
     EXPORT static Stmt make(std::string name, bool is_producer, Stmt body);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+        v->Visit("is_producer", &is_producer);
+        v->Visit("body", &body);
+    }
     static const IRNodeType _type_info = IRNodeType::ProducerConsumer;
+    static constexpr const char* _type_key = "ProducerConsumer";
 };
 
 /** Store a 'value' to the buffer called 'name' at a given
@@ -291,7 +477,13 @@ struct Store : public StmtNode<Store> {
 
     EXPORT static Stmt make(std::string name, Expr value, Expr index);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+        v->Visit("value", &value);
+        v->Visit("index", &index);
+    }
     static const IRNodeType _type_info = IRNodeType::Store;
+    static constexpr const char* _type_key = "Store";
 };
 
 /** This defines the value of a function at a multi-dimensional
@@ -305,7 +497,14 @@ struct Provide : public StmtNode<Provide> {
 
     EXPORT static Stmt make(std::string name, const std::vector<Expr> &values, const std::vector<Expr> &args);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+        // TODO(tqchen)
+        // v->Visit("value", &value);
+        // v->Visit("index", &index);
+    }
     static const IRNodeType _type_info = IRNodeType::Provide;
+    static constexpr const char* _type_key = "Provide";
 };
 
 /** Allocate a scratch area called with the given name, type, and
@@ -342,7 +541,15 @@ struct Allocate : public StmtNode<Allocate> {
     EXPORT static int32_t constant_allocation_size(const std::vector<Expr> &extents, const std::string &name);
     EXPORT int32_t constant_allocation_size() const;
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+        v->Visit("type", &type);
+        // TODO(tqchen)
+        // v->Visit("extents", &extents);
+        v->Visit("condition", &condition);
+    }
     static const IRNodeType _type_info = IRNodeType::Allocate;
+    static constexpr const char* _type_key = "Allocate";
 };
 
 /** Free the resources associated with the given buffer. */
@@ -351,7 +558,11 @@ struct Free : public StmtNode<Free> {
 
     EXPORT static Stmt make(std::string name);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+    }
     static const IRNodeType _type_info = IRNodeType::Free;
+    static constexpr const char* _type_key = "Free";
 };
 
 /** A single-dimensional span. Includes all numbers between min and
@@ -381,8 +592,15 @@ struct Realize : public StmtNode<Realize> {
 
     EXPORT static Stmt make(const std::string &name, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+        // v->Visit("types", &types);
+        // v->Visit("bounds", &bounds);
+        v->Visit("condition", &condition);
+        v->Visit("body", &body);
+    }
     static const IRNodeType _type_info = IRNodeType::Realize;
-
+    static constexpr const char* _type_key = "Realize";
 };
 
 /** A sequence of statements to be executed in-order. 'rest' may be
@@ -393,7 +611,12 @@ struct Block : public StmtNode<Block> {
     EXPORT static Stmt make(Stmt first, Stmt rest);
     EXPORT static Stmt make(const std::vector<Stmt> &stmts);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("first", &first);
+        v->Visit("rest", &rest);
+    }
     static const IRNodeType _type_info = IRNodeType::Block;
+    static constexpr const char* _type_key = "Block";
 };
 
 /** An if-then-else block. 'else' may be undefined. */
@@ -403,7 +626,13 @@ struct IfThenElse : public StmtNode<IfThenElse> {
 
     EXPORT static Stmt make(Expr condition, Stmt then_case, Stmt else_case = Stmt());
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("condition", &condition);
+        v->Visit("then_case", &then_case);
+        v->Visit("else_case", &else_case);
+    }
     static const IRNodeType _type_info = IRNodeType::IfThenElse;
+    static constexpr const char* _type_key = "IfThenElse";
 };
 
 /** Evaluate and discard an expression, presumably because it has some side-effect. */
@@ -412,7 +641,11 @@ struct Evaluate : public StmtNode<Evaluate> {
 
     EXPORT static Stmt make(Expr v);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("value", &value);
+    }
     static const IRNodeType _type_info = IRNodeType::Evaluate;
+    static constexpr const char* _type_key = "Evaluate";
 };
 
 /** A function call. This can represent a call to some extern function
@@ -424,14 +657,14 @@ struct Evaluate : public StmtNode<Evaluate> {
 struct Call : public ExprNode<Call> {
     std::string name;
     std::vector<Expr> args;
-    typedef enum {
+    enum CallType : int {
       Extern,       //< A call to an external C-ABI function, possibly with side-effects
       ExternCPlusPlus, //< A call to an external C-ABI function, possibly with side-effects
       PureExtern,   //< A call to a guaranteed-side-effect-free external function
       Halide,       //< A call to a Func
       Intrinsic,    //< A possibly-side-effecty compiler intrinsic, which has special handling during codegen
       PureIntrinsic //< A side-effect-free version of the above.
-    } CallType;
+    };
     CallType call_type;
 
     // Halide uses calls internally to represent certain operations
@@ -503,7 +736,7 @@ struct Call : public ExprNode<Call> {
     // onto a pointer to that function for the purposes of reference
     // counting only. Self-references in update definitions do not
     // have this set, to avoid cycles.
-    IntrusivePtr<const IRNode> func;
+    std::shared_ptr<const IRNode> func;
 
     // If that function has multiple values, which value does this
     // call node refer to?
@@ -512,7 +745,7 @@ struct Call : public ExprNode<Call> {
     EXPORT static Expr make(Type type, std::string name,
                             const std::vector<Expr> &args,
                             CallType call_type,
-                            IntrusivePtr<const IRNode> func = nullptr,
+                            std::shared_ptr<const IRNode> func = nullptr,
                             int value_index = 0);
 
     /** Check if a call node is pure within a pipeline, meaning that
@@ -533,7 +766,17 @@ struct Call : public ExprNode<Call> {
              name == intrin_name);
     }
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("type", &type);
+        v->Visit("name", &name);
+        // TODO(tqchen)
+        // v->Visit("args", &args);
+        v->Visit("call_type", &call_type);
+        // v->Visit("func", &func);
+        v->Visit("value_index", &value_index);
+    }
     static const IRNodeType _type_info = IRNodeType::Call;
+    static constexpr const char* _type_key = "Call";
 };
 
 /** A named variable. Might be a loop variable, function argument,
@@ -558,6 +801,7 @@ struct Variable : public ExprNode<Variable> {
     EXPORT static Expr make(Type type, std::string name_hint);
 
     static const IRNodeType _type_info = IRNodeType::Variable;
+    static constexpr const char* _type_key = "Variable";
 };
 
 /** A for loop. Execute the 'body' statement for all values of the
@@ -581,7 +825,16 @@ struct For : public StmtNode<For> {
 
     EXPORT static Stmt make(std::string name, Expr min, Expr extent, ForType for_type, DeviceAPI device_api, Stmt body);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("name", &name);
+        v->Visit("min", &min);
+        v->Visit("extent", &extent);
+        v->Visit("for_type", &for_type);
+        v->Visit("device_api", &device_api);
+        v->Visit("body", &body);
+    }
     static const IRNodeType _type_info = IRNodeType::For;
+    static constexpr const char* _type_key = "For";
 };
 
 }
