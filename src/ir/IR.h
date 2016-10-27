@@ -18,7 +18,10 @@ namespace Halide {
 namespace Internal {
 
 /** The actual IR nodes begin here. Remember that all the Expr
- * nodes also have a public "type" property */
+ *  nodes also have a public "type" property
+ *
+ *  These are exposed as dtype to DSL front-end to avoid confusion.
+ */
 
 /** Integer constants */
 struct IntImm : public ExprNode<IntImm> {
@@ -437,16 +440,15 @@ struct Store : public StmtNode<Store> {
  * Store node. */
 struct Provide : public StmtNode<Provide> {
     std::string name;
-    std::vector<Expr> values;
-    std::vector<Expr> args;
+    Array<Expr> values;
+    Array<Expr> args;
 
-    EXPORT static Stmt make(std::string name, const std::vector<Expr> &values, const std::vector<Expr> &args);
+    EXPORT static Stmt make(std::string name, Array<Expr> values, Array<Expr> args);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("name", &name);
-        // TODO(tqchen)
-        // v->Visit("value", &value);
-        // v->Visit("index", &index);
+        v->Visit("values", &values);
+        v->Visit("args", &args);
     }
     static const IRNodeType _type_info = IRNodeType::Provide;
     static constexpr const char* _type_key = "Provide";
@@ -460,7 +462,7 @@ struct Provide : public StmtNode<Provide> {
 struct Allocate : public StmtNode<Allocate> {
     std::string name;
     Type type;
-    std::vector<Expr> extents;
+    Array<Expr> extents;
     Expr condition;
 
     // These override the code generator dependent malloc and free
@@ -474,7 +476,9 @@ struct Allocate : public StmtNode<Allocate> {
     std::string free_function;
     Stmt body;
 
-    EXPORT static Stmt make(std::string name, Type type, const std::vector<Expr> &extents,
+    EXPORT static Stmt make(std::string name,
+                            Type type,
+                            Array<Expr> extents,
                             Expr condition, Stmt body,
                             Expr new_expr = Expr(), std::string free_function = std::string());
 
@@ -483,7 +487,7 @@ struct Allocate : public StmtNode<Allocate> {
      * overflows, this routine asserts. This returns 0 if the extents are
      * not all constants; otherwise, it returns the total constant allocation
      * size. */
-    EXPORT static int32_t constant_allocation_size(const std::vector<Expr> &extents, const std::string &name);
+    EXPORT static int32_t constant_allocation_size(const Array<Expr> &extents, const std::string &name);
     EXPORT int32_t constant_allocation_size() const;
 
     void VisitAttrs(IR::AttrVisitor* v) final {
@@ -601,7 +605,7 @@ struct Evaluate : public StmtNode<Evaluate> {
  * them to Load nodes. */
 struct Call : public ExprNode<Call> {
     std::string name;
-    std::vector<Expr> args;
+    Array<Expr> args;
     enum CallType : int {
       Extern,       //< A call to an external C-ABI function, possibly with side-effects
       ExternCPlusPlus, //< A call to an external C-ABI function, possibly with side-effects
@@ -687,8 +691,9 @@ struct Call : public ExprNode<Call> {
     // call node refer to?
     int value_index{0};
 
-    EXPORT static Expr make(Type type, std::string name,
-                            const std::vector<Expr> &args,
+    EXPORT static Expr make(Type type,
+                            std::string name,
+                            Array<Expr> args,
                             CallType call_type,
                             std::shared_ptr<const IRNode> func = nullptr,
                             int value_index = 0);
@@ -715,7 +720,7 @@ struct Call : public ExprNode<Call> {
         v->Visit("dtype", &type);
         v->Visit("name", &name);
         // TODO(tqchen)
-        // v->Visit("args", &args);
+        v->Visit("args", &args);
         v->Visit("call_type", &call_type);
         // v->Visit("func", &func);
         v->Visit("value_index", &value_index);
@@ -743,8 +748,12 @@ struct Variable : public ExprNode<Variable> {
     // remove reference to reduction domain here,
     // instead,uses Reduction as a ExprNode
 
-    EXPORT static Expr make(Type type, std::string name_hint);
+    EXPORT static VarExpr make(Type type, std::string name_hint);
 
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("dtype", &type);
+        v->Visit("name", &name_hint);
+    }
     static const IRNodeType _type_info = IRNodeType::Variable;
     static constexpr const char* _type_key = "Variable";
 };

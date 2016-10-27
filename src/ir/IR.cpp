@@ -17,6 +17,9 @@ Expr::Expr(float x) : IRHandle(Internal::FloatImm::make(Float(32), x)) {}
 Expr::Expr(double x) : IRHandle(Internal::FloatImm::make(Float(64), x)) {}
 Expr::Expr(const std::string &s) : IRHandle(Internal::StringImm::make(s)) {}
 
+VarExpr::VarExpr(const std::string &name_hint,  Type t)
+    : VarExpr(Internal::Variable::make(t, name_hint)) {}
+
 namespace Internal {
 
 Expr IntImm::make(Type t, int64_t value) {
@@ -260,7 +263,7 @@ Stmt Store::make(std::string name, Expr value, Expr index) {
     return Stmt(node);
 }
 
-Stmt Provide::make(std::string name, const std::vector<Expr> &values, const std::vector<Expr> &args) {
+Stmt Provide::make(std::string name, Array<Expr> values, Array<Expr> args) {
     internal_assert(!values.empty()) << "Provide of no values\n";
     for (size_t i = 0; i < values.size(); i++) {
         internal_assert(values[i].defined()) << "Provide of undefined value\n";
@@ -276,7 +279,9 @@ Stmt Provide::make(std::string name, const std::vector<Expr> &values, const std:
     return Stmt(node);
 }
 
-Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extents,
+Stmt Allocate::make(std::string name,
+                    Type type,
+                    Array<Expr> extents,
                     Expr condition, Stmt body,
                     Expr new_expr, std::string free_function) {
     for (size_t i = 0; i < extents.size(); i++) {
@@ -298,7 +303,7 @@ Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extent
     return Stmt(node);
 }
 
-int32_t Allocate::constant_allocation_size(const std::vector<Expr> &extents, const std::string &name) {
+int32_t Allocate::constant_allocation_size(const Array<Expr> &extents, const std::string &name) {
     int64_t result = 1;
 
     for (size_t i = 0; i < extents.size(); i++) {
@@ -408,7 +413,7 @@ Stmt Evaluate::make(Expr v) {
     return Stmt(node);
 }
 
-Expr Call::make(Type type, std::string name, const std::vector<Expr> &args, CallType call_type,
+Expr Call::make(Type type, std::string name, Array<Expr> args, CallType call_type,
                 std::shared_ptr<const IRNode> func, int value_index) {
     for (size_t i = 0; i < args.size(); i++) {
         internal_assert(args[i].defined()) << "Call of undefined\n";
@@ -430,11 +435,11 @@ Expr Call::make(Type type, std::string name, const std::vector<Expr> &args, Call
     return Expr(node);
 }
 
-Expr Variable::make(Type type, std::string name_hint) {
+VarExpr Variable::make(Type type, std::string name_hint) {
     std::shared_ptr<Variable> node = std::make_shared<Variable>();
     node->type = type;
     node->name_hint = name_hint;
-    return Expr(node);
+    return VarExpr(node);
 }
 
 template<> void ExprNode<IntImm>::accept(IRVisitor *v) const { v->visit((const IntImm *)this); }

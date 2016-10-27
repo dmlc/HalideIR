@@ -43,7 +43,7 @@ private:
     CmpResult compare_names(const std::string &a, const std::string &b);
     CmpResult compare_ptrs(const IRNode* a, const IRNode* b);
     CmpResult compare_types(Type a, Type b);
-    CmpResult compare_expr_vector(const std::vector<Expr> &a, const std::vector<Expr> &b);
+    CmpResult compare_expr_vector(const Array<Expr> &a, const Array<Expr> &b);
 
     // Compare two things that already have a well-defined operator<
     template<typename T>
@@ -228,7 +228,7 @@ IRComparer::CmpResult IRComparer::compare_ptrs(const IRNode* a, const IRNode* b)
 }
 
 
-IRComparer::CmpResult IRComparer::compare_expr_vector(const vector<Expr> &a, const vector<Expr> &b) {
+IRComparer::CmpResult IRComparer::compare_expr_vector(const Array<Expr> &a, const Array<Expr> &b) {
     if (result != Equal) return result;
 
     compare_scalar(a.size(), b.size());

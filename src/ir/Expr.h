@@ -14,12 +14,14 @@
 #include "base/Type.h"
 #include "base/Util.h"
 #include "tvm/node.h"
+#include "tvm/array.h"
 
 namespace Halide {
 namespace Internal {
 
 using IR::Node;
 using IR::NodeRef;
+using IR::Array;
 
 class IRVisitor;
 
@@ -220,6 +222,22 @@ struct ExprEqual {
     bool operator()(const Expr& a, const Expr& b) const {
         return a.get() == b.get();
     }
+};
+
+/**
+ * A subclass of Expr that only refers to a Variable
+ *
+ * Avoid use the Var to confuse with Halide's Var in high level DSL.
+ */
+struct VarExpr : public Expr {
+    VarExpr() : Expr() { }
+    VarExpr(std::shared_ptr<IR::Node> n) : Expr(n) {}
+    /**
+     * constructor from variable
+     * Choose first have name then type, with default int32
+     * because most VarExpr are used as looping variable.
+     */
+    VarExpr(const std::string &name_hint="v", Type t = Int(32));
 };
 
 /** An enum describing a type of device API. Used by schedules, and in
