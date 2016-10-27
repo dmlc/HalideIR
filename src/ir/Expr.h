@@ -243,16 +243,16 @@ struct VarExpr : public Expr {
 /** An enum describing a type of device API. Used by schedules, and in
  * the For loop IR node. */
 enum class DeviceAPI : int {
-    None, /// Used to denote for loops that run on the same device as the containing code.
-    Host,
-    Default_GPU,
-    CUDA,
-    OpenCL,
-    GLSL,
-    Renderscript,
-    OpenGLCompute,
-    Metal,
-    Hexagon
+    None = 0, /// Used to denote for loops that run on the same device as the containing code.
+    Host = 1,
+    Default_GPU = 2,
+    CUDA = 3,
+    OpenCL = 4,
+    GLSL = 5,
+    Renderscript = 6,
+    OpenGLCompute = 7,
+    Metal = 8,
+    Hexagon = 9
 };
 
 /** An array containing all the device apis. Useful for iterating
@@ -273,10 +273,10 @@ namespace Internal {
 /** An enum describing a type of loop traversal. Used in schedules,
  * and in the For loop IR node. */
 enum class ForType : int {
-    Serial,
-    Parallel,
-    Vectorized,
-    Unrolled
+    Serial = 0,
+    Parallel = 1,
+    Vectorized = 2,
+    Unrolled = 3
 };
 
 

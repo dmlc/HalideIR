@@ -493,8 +493,7 @@ struct Allocate : public StmtNode<Allocate> {
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("name", &name);
         v->Visit("dtype", &type);
-        // TODO(tqchen)
-        // v->Visit("extents", &extents);
+        v->Visit("extents", &extents);
         v->Visit("condition", &condition);
     }
     static const IRNodeType _type_info = IRNodeType::Allocate;

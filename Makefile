@@ -30,7 +30,7 @@ lib/libHalideIR.so: $(ALL_DEP)
 
 
 lint:
-	python2 dmlc-core/scripts/lint.py Halide cpp include src
+	python2 dmlc-core/scripts/lint.py tvm cpp include src/tvm
 
 doc:
 	doxygen docs/Doxyfile
