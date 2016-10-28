@@ -41,7 +41,8 @@ private:
     IRCompareCache *cache;
 
     CmpResult compare_names(const std::string &a, const std::string &b);
-    CmpResult compare_ptrs(const IRNode* a, const IRNode* b);
+    CmpResult compare_ptrs(const Node* a, const Node* b);
+    CmpResult compare_node_refs(const NodeRef& a, const NodeRef& b);
     CmpResult compare_types(Type a, Type b);
     CmpResult compare_expr_vector(const Array<Expr> &a, const Array<Expr> &b);
 
@@ -217,7 +218,7 @@ IRComparer::CmpResult IRComparer::compare_names(const string &a, const string &b
     return result;
 }
 
-IRComparer::CmpResult IRComparer::compare_ptrs(const IRNode* a, const IRNode* b) {
+IRComparer::CmpResult IRComparer::compare_ptrs(const Node* a, const Node* b) {
     if (result != Equal) return result;
     if (a < b) {
       result = LessThan;
@@ -227,6 +228,9 @@ IRComparer::CmpResult IRComparer::compare_ptrs(const IRNode* a, const IRNode* b)
     return result;
 }
 
+IRComparer::CmpResult IRComparer::compare_node_refs(const NodeRef& a, const NodeRef& b) {
+  return compare_ptrs(a.get(), b.get());
+}
 
 IRComparer::CmpResult IRComparer::compare_expr_vector(const Array<Expr> &a, const Array<Expr> &b) {
     if (result != Equal) return result;
@@ -308,7 +312,7 @@ void IRComparer::visit(const Select *op) {
 
 void IRComparer::visit(const Load *op) {
     const Load *e = expr.as<Load>();
-    compare_names(op->name, e->name);
+    compare_node_refs(op->buffer_var, e->buffer_var);
     compare_expr(e->index, op->index);
 }
 
@@ -336,7 +340,7 @@ void IRComparer::visit(const Call *op) {
 void IRComparer::visit(const Let *op) {
     const Let *e = expr.as<Let>();
 
-    compare_names(e->name, op->name);
+    compare_node_refs(e->var, op->var);
     compare_expr(e->value, op->value);
     compare_expr(e->body, op->body);
 }
@@ -344,7 +348,7 @@ void IRComparer::visit(const Let *op) {
 void IRComparer::visit(const LetStmt *op) {
     const LetStmt *s = stmt.as<LetStmt>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->var, op->var);
     compare_expr(s->value, op->value);
     compare_stmt(s->body, op->body);
 }
@@ -359,7 +363,7 @@ void IRComparer::visit(const AssertStmt *op) {
 void IRComparer::visit(const ProducerConsumer *op) {
     const ProducerConsumer *s = stmt.as<ProducerConsumer>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->func, op->func);
     compare_scalar(s->is_producer, op->is_producer);
     compare_stmt(s->body, op->body);
 }
@@ -367,7 +371,7 @@ void IRComparer::visit(const ProducerConsumer *op) {
 void IRComparer::visit(const For *op) {
     const For *s = stmt.as<For>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->loop_var, op->loop_var);
     compare_scalar(s->for_type, op->for_type);
     compare_expr(s->min, op->min);
     compare_expr(s->extent, op->extent);
@@ -377,7 +381,7 @@ void IRComparer::visit(const For *op) {
 void IRComparer::visit(const Store *op) {
     const Store *s = stmt.as<Store>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->buffer_var, op->buffer_var);
 
     compare_expr(s->value, op->value);
     compare_expr(s->index, op->index);
@@ -394,7 +398,7 @@ void IRComparer::visit(const Provide *op) {
 void IRComparer::visit(const Allocate *op) {
     const Allocate *s = stmt.as<Allocate>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->buffer_var, op->buffer_var);
     compare_expr_vector(s->extents, op->extents);
     compare_stmt(s->body, op->body);
     compare_expr(s->condition, op->condition);
@@ -405,15 +409,15 @@ void IRComparer::visit(const Allocate *op) {
 void IRComparer::visit(const Realize *op) {
     const Realize *s = stmt.as<Realize>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->func, op->func);
     compare_scalar(s->types.size(), op->types.size());
     compare_scalar(s->bounds.size(), op->bounds.size());
     for (size_t i = 0; (result == Equal) && (i < s->types.size()); i++) {
         compare_types(s->types[i], op->types[i]);
     }
     for (size_t i = 0; (result == Equal) && (i < s->bounds.size()); i++) {
-        compare_expr(s->bounds[i].min, op->bounds[i].min);
-        compare_expr(s->bounds[i].extent, op->bounds[i].extent);
+        compare_expr(s->bounds[i]->min, op->bounds[i]->min);
+        compare_expr(s->bounds[i]->extent, op->bounds[i]->extent);
     }
     compare_stmt(s->body, op->body);
     compare_expr(s->condition, op->condition);
@@ -429,7 +433,7 @@ void IRComparer::visit(const Block *op) {
 void IRComparer::visit(const Free *op) {
     const Free *s = stmt.as<Free>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->buffer_var, op->buffer_var);
 }
 
 void IRComparer::visit(const IfThenElse *op) {

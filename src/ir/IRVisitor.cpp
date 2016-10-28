@@ -186,8 +186,8 @@ void IRVisitor::visit(const Free *op) {
 
 void IRVisitor::visit(const Realize *op) {
     for (size_t i = 0; i < op->bounds.size(); i++) {
-        op->bounds[i].min.accept(this);
-        op->bounds[i].extent.accept(this);
+        op->bounds[i]->min.accept(this);
+        op->bounds[i]->extent.accept(this);
     }
     op->condition.accept(this);
     op->body.accept(this);
@@ -410,8 +410,8 @@ void IRGraphVisitor::visit(const Free *op) {
 
 void IRGraphVisitor::visit(const Realize *op) {
     for (size_t i = 0; i < op->bounds.size(); i++) {
-        include(op->bounds[i].min);
-        include(op->bounds[i].extent);
+        include(op->bounds[i]->min);
+        include(op->bounds[i]->extent);
     }
     include(op->condition);
     include(op->body);

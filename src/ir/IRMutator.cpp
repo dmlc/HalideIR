@@ -129,7 +129,7 @@ void IRMutator::visit(const Load *op) {
     if (index.same_as(op->index)) {
         return_self();
     } else {
-      return_value(Load::make(op->type, op->name, index));
+      return_value(Load::make(op->type, op->buffer_var, index));
     }
 }
 
@@ -177,7 +177,7 @@ void IRMutator::visit(const Let *op) {
         body.same_as(op->body)) {
         return_self();
     } else {
-        return_value(Let::make(op->name, value, body));
+        return_value(Let::make(op->var, value, body));
     }
 }
 
@@ -188,7 +188,7 @@ void IRMutator::visit(const LetStmt *op) {
         body.same_as(op->body)) {
         return_self();
     } else {
-        return_value(LetStmt::make(op->name, value, body));
+      return_value(LetStmt::make(op->var, value, body));
     }
 }
 
@@ -208,7 +208,7 @@ void IRMutator::visit(const ProducerConsumer *op) {
     if (body.same_as(op->body)) {
         return_self();
     } else {
-        return_value(ProducerConsumer::make(op->name, op->is_producer, body));
+        return_value(ProducerConsumer::make(op->func, op->is_producer, body));
     }
 }
 
@@ -221,7 +221,8 @@ void IRMutator::visit(const For *op) {
         body.same_as(op->body)) {
         return_self();
     } else {
-        return_value(For::make(op->name, min, extent, op->for_type, op->device_api, body));
+        return_value(For::make(
+            op->loop_var, min, extent, op->for_type, op->device_api, body));
     }
 }
 
@@ -231,7 +232,7 @@ void IRMutator::visit(const Store *op) {
     if (value.same_as(op->value) && index.same_as(op->index)) {
         return_self();
     } else {
-        return_value(Store::make(op->name, value, index));
+        return_value(Store::make(op->buffer_var, value, index));
     }
 }
 
@@ -281,7 +282,7 @@ void IRMutator::visit(const Allocate *op) {
         new_expr.same_as(op->new_expr)) {
         return_self();
     } else {
-        return_value(Allocate::make(op->name, op->type, new_extents, condition, body, new_expr, op->free_function));
+        return_value(Allocate::make(op->buffer_var, op->type, new_extents, condition, body, new_expr, op->free_function));
     }
 }
 
@@ -290,18 +291,18 @@ void IRMutator::visit(const Free *op) {
 }
 
 void IRMutator::visit(const Realize *op) {
-    Region new_bounds(op->bounds.size());
+    Region new_bounds;
     bool bounds_changed = false;
 
     // Mutate the bounds
     for (size_t i = 0; i < op->bounds.size(); i++) {
-        Expr old_min    = op->bounds[i].min;
-        Expr old_extent = op->bounds[i].extent;
+        Expr old_min    = op->bounds[i]->min;
+        Expr old_extent = op->bounds[i]->extent;
         Expr new_min    = mutate(old_min);
         Expr new_extent = mutate(old_extent);
         if (!new_min.same_as(old_min))       bounds_changed = true;
         if (!new_extent.same_as(old_extent)) bounds_changed = true;
-        new_bounds[i] = Range(new_min, new_extent);
+        new_bounds.push_back(Range(new_min, new_extent));
     }
 
     Stmt body = mutate(op->body);
@@ -311,7 +312,7 @@ void IRMutator::visit(const Realize *op) {
         condition.same_as(op->condition)) {
         return_self();
     } else {
-        return_value(Realize::make(op->name, op->types, new_bounds,
+        return_value(Realize::make(op->func, op->types, new_bounds,
                                    condition, body));
     }
 }

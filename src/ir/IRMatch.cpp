@@ -190,7 +190,8 @@ public:
 
     void visit(const Load *op) {
         const Load *e = expr.as<Load>();
-        if (result && e && types_match(op->type, e->type) && e->name == op->name) {
+        if (result && e && types_match(op->type, e->type) &&
+            e->buffer_var.same_as(op->buffer_var)) {
             expr = e->index;
             op->index.accept(this);
         } else {
@@ -239,7 +240,7 @@ public:
 
     void visit(const Let *op) {
         const Let *e = expr.as<Let>();
-        if (result && e && e->name == op->name) {
+        if (result && e && e->var.same_as(op->var)) {
             expr = e->value;
             op->value.accept(this);
             expr = e->body;

@@ -92,7 +92,9 @@ class NodeRef {
    */
   template<typename TNode>
   inline const TNode* Get() const;
-  /*! \return wheyjer the expression is null */
+  /*! \return the internal node pointer */
+  inline const Node* get() const;
+  /*! \return whether the expression is null */
   inline bool defined() const;
   /*!
    * \brief Comparator
@@ -152,6 +154,10 @@ inline const TNode* NodeRef::Get() const {
       << " type inconsistent, expected " << typeid(TNode).name()
       << " given " << typeid(*this).name();
   return static_cast<const TNode*>(node_.get());
+}
+
+inline const Node* NodeRef::get() const {
+  return node_.get();
 }
 
 inline bool NodeRef::defined() const {

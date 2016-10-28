@@ -76,55 +76,6 @@ ostream &operator<<(ostream &out, const DeviceAPI &api) {
 
 namespace Internal {
 
-void IRPrinter::test() {
-    Type i32 = Int(32);
-    Type f32 = Float(32);
-    Expr x = Variable::make(Int(32), "x");
-    Expr y = Variable::make(Int(32), "y");
-    ostringstream expr_source;
-    expr_source << (x + 3) * (y / 2 + 17);
-    internal_assert(expr_source.str() == "((x + 3)*((y/2) + 17))");
-
-    Stmt store = Store::make("buf", (x * 17) / (x - 3), y - 1);
-    Stmt for_loop = For::make("x", -2, y + 2, ForType::Parallel, DeviceAPI::Host, store);
-    vector<Expr> args(1); args[0] = x % 3;
-    Expr call = Call::make(i32, "buf", args, Call::Extern);
-    Stmt store2 = Store::make("out", call + 1, x);
-    Stmt for_loop2 = For::make("x", 0, y, ForType::Vectorized , DeviceAPI::Host, store2);
-
-    Stmt producer = ProducerConsumer::make("buf", true, for_loop);
-    Stmt consumer = ProducerConsumer::make("buf", false, for_loop2);
-    Stmt pipeline = Block::make(producer, consumer);
-
-    Stmt assertion = AssertStmt::make(y >= 3, Call::make(Int(32), "halide_error_param_too_small_i64",
-                                                         {string("y"), y, 3}, Call::Extern));
-    Stmt block = Block::make(assertion, pipeline);
-    Stmt let_stmt = LetStmt::make("y", 17, block);
-    Stmt allocate = Allocate::make("buf", f32, {1023}, const_true(), let_stmt);
-
-    ostringstream source;
-    source << allocate;
-    std::string correct_source = \
-        "allocate buf[float32 * 1023]\n"
-        "let y = 17\n"
-        "assert((y >= 3), halide_error_param_too_small_i64(\"y\", y, 3))\n"
-        "produce buf {\n"
-        "  parallel (x, -2, (y + 2)) {\n"
-        "    buf[(y - 1)] = ((x*17)/(x - 3))\n"
-        "  }\n"
-        "}\n"
-        "vectorized (x, 0, y) {\n"
-        "  out[x] = (buf((x % 3)) + 1)\n"
-        "}\n";
-
-    if (source.str() != correct_source) {
-        internal_error << "Correct output:\n" << correct_source
-                       << "Actual output:\n" << source.str();
-
-    }
-    std::cout << "IRPrinter test passed\n";
-}
-
 ostream &operator<<(ostream &out, const ForType &type) {
     switch (type) {
     case ForType::Serial:
@@ -380,7 +331,7 @@ void IRPrinter::visit(const Select *op) {
 }
 
 void IRPrinter::visit(const Load *op) {
-    stream << op->name << "[";
+    stream << op->buffer_var << "[";
     print(op->index);
     stream << "]";
 }
@@ -427,7 +378,7 @@ void IRPrinter::visit(const Call *op) {
 }
 
 void IRPrinter::visit(const Let *op) {
-    stream << "(let " << op->name << " = ";
+    stream << "(let " << op->var << " = ";
     print(op->value);
     stream << " in ";
     print(op->body);
@@ -436,7 +387,7 @@ void IRPrinter::visit(const Let *op) {
 
 void IRPrinter::visit(const LetStmt *op) {
     do_indent();
-    stream << "let " << op->name << " = ";
+    stream << "let " << op->var << " = ";
     print(op->value);
     stream << '\n';
 
@@ -455,7 +406,7 @@ void IRPrinter::visit(const AssertStmt *op) {
 void IRPrinter::visit(const ProducerConsumer *op) {
     if (op->is_producer) {
         do_indent();
-        stream << "produce " << op->name << " {\n";
+        stream << "produce " << op->func->name() << " {\n";
         indent += 2;
         print(op->body);
         indent -= 2;
@@ -470,7 +421,7 @@ void IRPrinter::visit(const ProducerConsumer *op) {
 void IRPrinter::visit(const For *op) {
 
     do_indent();
-    stream << op->for_type << op->device_api << " (" << op->name << ", ";
+    stream << op->for_type << op->device_api << " (" << op->loop_var << ", ";
     print(op->min);
     stream << ", ";
     print(op->extent);
@@ -486,7 +437,7 @@ void IRPrinter::visit(const For *op) {
 
 void IRPrinter::visit(const Store *op) {
     do_indent();
-    stream << op->name << "[";
+    stream << op->buffer_var << "[";
     print(op->index);
     stream << "] = ";
     print(op->value);
@@ -519,7 +470,7 @@ void IRPrinter::visit(const Provide *op) {
 
 void IRPrinter::visit(const Allocate *op) {
     do_indent();
-    stream << "allocate " << op->name << "[" << op->type;
+    stream << "allocate " << op->buffer_var << "[" << op->type;
     for (size_t i = 0; i < op->extents.size(); i++) {
         stream  << " * ";
         print(op->extents[i]);
@@ -541,18 +492,18 @@ void IRPrinter::visit(const Allocate *op) {
 
 void IRPrinter::visit(const Free *op) {
     do_indent();
-    stream << "free " << op->name;
+    stream << "free " << op->buffer_var;
     stream << '\n';
 }
 
 void IRPrinter::visit(const Realize *op) {
     do_indent();
-    stream << "realize " << op->name << "(";
+    stream << "realize " << op->func->name() << "(";
     for (size_t i = 0; i < op->bounds.size(); i++) {
         stream << "[";
-        print(op->bounds[i].min);
+        print(op->bounds[i]->min);
         stream << ", ";
-        print(op->bounds[i].extent);
+        print(op->bounds[i]->extent);
         stream << "]";
         if (i < op->bounds.size() - 1) stream << ", ";
     }

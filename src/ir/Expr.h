@@ -23,6 +23,7 @@ using IR::Node;
 using IR::NodeRef;
 using IR::Array;
 
+struct Variable;
 class IRVisitor;
 
 /** All our IR node types get unique IDs for the purposes of RTTI */
@@ -163,7 +164,6 @@ struct IRHandle : public NodeRef {
         return static_cast<const IRNode*>(node_.get());
     }
 };
-
 }  // namespace Internal
 
 /** A fragment of Halide syntax. It's implemented as reference-counted
@@ -237,7 +237,9 @@ struct VarExpr : public Expr {
      * Choose first have name then type, with default int32
      * because most VarExpr are used as looping variable.
      */
-    VarExpr(const std::string &name_hint="v", Type t = Int(32));
+    VarExpr(const std::string &name_hint, Type t = Int(32));
+    /** return internal variable pointer */
+    inline const Internal::Variable* operator->() const;
 };
 
 /** An enum describing a type of device API. Used by schedules, and in

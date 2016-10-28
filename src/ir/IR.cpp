@@ -152,13 +152,13 @@ Expr Select::make(Expr condition, Expr true_value, Expr false_value) {
 }
 
 
-Expr Load::make(Type type, std::string name, Expr index) {
+Expr Load::make(Type type, VarExpr buffer_var, Expr index) {
     internal_assert(index.defined()) << "Load of undefined\n";
     internal_assert(type.lanes() == index.type().lanes()) << "Vector lanes of Load must match vector lanes of index\n";
 
     std::shared_ptr<Load> node = std::make_shared<Load>();
     node->type = type;
-    node->name = name;
+    node->buffer_var = buffer_var;
     node->index = index;
 
     return Expr(node);
@@ -192,24 +192,24 @@ Expr Broadcast::make(Expr value, int lanes) {
     return Expr(node);
 }
 
-Expr Let::make(std::string name, Expr value, Expr body) {
+Expr Let::make(VarExpr var, Expr value, Expr body) {
     internal_assert(value.defined()) << "Let of undefined\n";
     internal_assert(body.defined()) << "Let of undefined\n";
-
+    internal_assert(value.type() == var.type()) << "Let var mismatch\n";
     std::shared_ptr<Let> node = std::make_shared<Let>();
     node->type = body.type();
-    node->name = name;
+    node->var = var;
     node->value = value;
     node->body = body;
     return Expr(node);
 }
 
-Stmt LetStmt::make(std::string name, Expr value, Stmt body) {
+Stmt LetStmt::make(VarExpr var, Expr value, Stmt body) {
     internal_assert(value.defined()) << "Let of undefined\n";
     internal_assert(body.defined()) << "Let of undefined\n";
-
+    internal_assert(value.type() == var.type()) << "Let var mismatch\n";
     std::shared_ptr<LetStmt> node = std::make_shared<LetStmt>();
-    node->name = name;
+    node->var = var;
     node->value = value;
     node->body = body;
     return Stmt(node);
@@ -225,25 +225,29 @@ Stmt AssertStmt::make(Expr condition, Expr message) {
     return Stmt(node);
 }
 
-Stmt ProducerConsumer::make(std::string name, bool is_producer, Stmt body) {
+Stmt ProducerConsumer::make(FunctionRef func, bool is_producer, Stmt body) {
     internal_assert(body.defined()) << "ProducerConsumer of undefined\n";
 
     std::shared_ptr<ProducerConsumer> node = std::make_shared<ProducerConsumer>();
-    node->name = name;
+    node->func = func;
     node->is_producer = is_producer;
     node->body = body;
     return Stmt(node);
 }
 
-Stmt For::make(std::string name, Expr min, Expr extent, ForType for_type, DeviceAPI device_api, Stmt body) {
+Stmt For::make(VarExpr loop_var,
+               Expr min, Expr extent,
+               ForType for_type, DeviceAPI device_api,
+               Stmt body) {
     internal_assert(min.defined()) << "For of undefined\n";
     internal_assert(extent.defined()) << "For of undefined\n";
     internal_assert(min.type().is_scalar()) << "For with vector min\n";
     internal_assert(extent.type().is_scalar()) << "For with vector extent\n";
+    internal_assert(loop_var.type().is_scalar()) << "For with vector loop_var";
     internal_assert(body.defined()) << "For of undefined\n";
 
     std::shared_ptr<For> node = std::make_shared<For>();
-    node->name = name;
+    node->loop_var = loop_var;
     node->min = min;
     node->extent = extent;
     node->for_type = for_type;
@@ -252,12 +256,12 @@ Stmt For::make(std::string name, Expr min, Expr extent, ForType for_type, Device
     return Stmt(node);
 }
 
-Stmt Store::make(std::string name, Expr value, Expr index) {
+Stmt Store::make(VarExpr buffer_var, Expr value, Expr index) {
     internal_assert(value.defined()) << "Store of undefined\n";
     internal_assert(index.defined()) << "Store of undefined\n";
 
     std::shared_ptr<Store> node = std::make_shared<Store>();
-    node->name = name;
+    node->buffer_var = buffer_var;
     node->value = value;
     node->index = index;
     return Stmt(node);
@@ -279,7 +283,7 @@ Stmt Provide::make(std::string name, Array<Expr> values, Array<Expr> args) {
     return Stmt(node);
 }
 
-Stmt Allocate::make(std::string name,
+Stmt Allocate::make(VarExpr buffer_var,
                     Type type,
                     Array<Expr> extents,
                     Expr condition, Stmt body,
@@ -293,7 +297,7 @@ Stmt Allocate::make(std::string name,
     internal_assert(condition.type().is_bool()) << "Allocate condition is not boolean\n";
 
     std::shared_ptr<Allocate> node = std::make_shared<Allocate>();
-    node->name = name;
+    node->buffer_var = buffer_var;
     node->type = type;
     node->extents = extents;
     node->new_expr = new_expr;
@@ -303,7 +307,7 @@ Stmt Allocate::make(std::string name,
     return Stmt(node);
 }
 
-int32_t Allocate::constant_allocation_size(const Array<Expr> &extents, const std::string &name) {
+int32_t Allocate::constant_allocation_size(const Array<Expr> &extents, const std::string& name) {
     int64_t result = 1;
 
     for (size_t i = 0; i < extents.size(); i++) {
@@ -335,21 +339,22 @@ int32_t Allocate::constant_allocation_size(const Array<Expr> &extents, const std
 }
 
 int32_t Allocate::constant_allocation_size() const {
-    return Allocate::constant_allocation_size(extents, name);
+    return Allocate::constant_allocation_size(
+        extents, buffer_var->name_hint);
 }
 
-Stmt Free::make(std::string name) {
+Stmt Free::make(VarExpr buffer_var) {
     std::shared_ptr<Free> node = std::make_shared<Free>();
-    node->name = name;
+    node->buffer_var = buffer_var;
     return Stmt(node);
 }
 
-Stmt Realize::make(const std::string &name, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body) {
+Stmt Realize::make(FunctionRef func, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body) {
     for (size_t i = 0; i < bounds.size(); i++) {
-        internal_assert(bounds[i].min.defined()) << "Realize of undefined\n";
-        internal_assert(bounds[i].extent.defined()) << "Realize of undefined\n";
-        internal_assert(bounds[i].min.type().is_scalar()) << "Realize of vector size\n";
-        internal_assert(bounds[i].extent.type().is_scalar()) << "Realize of vector size\n";
+        internal_assert(bounds[i]->min.defined()) << "Realize of undefined\n";
+        internal_assert(bounds[i]->extent.defined()) << "Realize of undefined\n";
+        internal_assert(bounds[i]->min.type().is_scalar()) << "Realize of vector size\n";
+        internal_assert(bounds[i]->extent.type().is_scalar()) << "Realize of vector size\n";
     }
     internal_assert(body.defined()) << "Realize of undefined\n";
     internal_assert(!types.empty()) << "Realize has empty type\n";
@@ -357,7 +362,7 @@ Stmt Realize::make(const std::string &name, const std::vector<Type> &types, cons
     internal_assert(condition.type().is_bool()) << "Realize condition is not boolean\n";
 
     std::shared_ptr<Realize> node = std::make_shared<Realize>();
-    node->name = name;
+    node->func = func;
     node->types = types;
     node->bounds = bounds;
     node->condition = condition;
@@ -414,7 +419,7 @@ Stmt Evaluate::make(Expr v) {
 }
 
 Expr Call::make(Type type, std::string name, Array<Expr> args, CallType call_type,
-                std::shared_ptr<const IRNode> func, int value_index) {
+                FunctionRef func, int value_index) {
     for (size_t i = 0; i < args.size(); i++) {
         internal_assert(args[i].defined()) << "Call of undefined\n";
     }

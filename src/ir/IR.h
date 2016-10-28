@@ -13,9 +13,18 @@
 #include "base/Type.h"
 #include "base/Util.h"
 #include "Expr.h"
+#include "Range.h"
+#include "FunctionBase.h"
 
 namespace Halide {
 namespace Internal {
+
+using IR::FunctionRef;
+using IR::Range;
+
+/** A multi-dimensional box. The outer product of the elements */
+using Region = Array<Range>;
+
 
 /** The actual IR nodes begin here. Remember that all the Expr
  *  nodes also have a public "type" property
@@ -55,7 +64,7 @@ struct UIntImm : public ExprNode<UIntImm> {
 struct FloatImm : public ExprNode<FloatImm> {
     double value;
 
-  static Expr make(Type t, double value);
+    static Expr make(Type t, double value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
@@ -278,19 +287,19 @@ struct Select : public ExprNode<Select> {
     static constexpr const char* _type_key = "Select";
 };
 
-/** Load a value from a named buffer. The buffer is treated as an
+/** Load a value from a buffer. The buffer is treated as an
  * array of the 'type' of this Load node. That is, the buffer has
  * no inherent type. */
 struct Load : public ExprNode<Load> {
-    std::string name;
+    VarExpr buffer_var;
     Expr index;
 
-    EXPORT static Expr make(Type type, std::string name, Expr index);
+    EXPORT static Expr make(Type type, VarExpr buffer_var, Expr index);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
-        v->Visit("name", &name);
-        v->Visit("name", &index);
+        v->Visit("buffer_var", &buffer_var);
+        v->Visit("index", &index);
     }
     static const IRNodeType _type_info = IRNodeType::Load;
     static constexpr const char* _type_key = "Load";
@@ -339,14 +348,14 @@ struct Broadcast : public ExprNode<Broadcast> {
  * language. Within the expression \ref Let::body, instances of the Var
  * node \ref Let::name refer to \ref Let::value. */
 struct Let : public ExprNode<Let> {
-    std::string name;
+    VarExpr var;
     Expr value, body;
 
-    EXPORT static Expr make(std::string name, Expr value, Expr body);
+    EXPORT static Expr make(VarExpr var, Expr value, Expr body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
-        v->Visit("name", &name);
+        v->Visit("var", &var);
         v->Visit("value", &value);
         v->Visit("body", &body);
     }
@@ -355,16 +364,17 @@ struct Let : public ExprNode<Let> {
 };
 
 /** The statement form of a let node. Within the statement 'body',
- * instances of the Var named 'name' refer to 'value' */
+ * instances of the Var refer to 'value'
+ */
 struct LetStmt : public StmtNode<LetStmt> {
-    std::string name;
+    VarExpr var;
     Expr value;
     Stmt body;
 
-    EXPORT static Stmt make(std::string name, Expr value, Stmt body);
+    EXPORT static Stmt make(VarExpr var, Expr value, Stmt body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("var", &var);
         v->Visit("value", &value);
         v->Visit("body", &body);
     }
@@ -401,14 +411,14 @@ struct AssertStmt : public StmtNode<AssertStmt> {
  * being read from or written to in the body of the ProducerConsumer.
  */
 struct ProducerConsumer : public StmtNode<ProducerConsumer> {
-    std::string name;
+    FunctionRef func;
     bool is_producer;
     Stmt body;
 
-    EXPORT static Stmt make(std::string name, bool is_producer, Stmt body);
+    EXPORT static Stmt make(FunctionRef func, bool is_producer, Stmt body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("func", &func);
         v->Visit("is_producer", &is_producer);
         v->Visit("body", &body);
     }
@@ -416,17 +426,17 @@ struct ProducerConsumer : public StmtNode<ProducerConsumer> {
     static constexpr const char* _type_key = "ProducerConsumer";
 };
 
-/** Store a 'value' to the buffer called 'name' at a given
+/** Store a 'value' to the buffer with handle at a given
  * 'index'. The buffer is interpreted as an array of the same type as
  * 'value'. */
 struct Store : public StmtNode<Store> {
-    std::string name;
+    VarExpr buffer_var;
     Expr value, index;
 
-    EXPORT static Stmt make(std::string name, Expr value, Expr index);
+    EXPORT static Stmt make(VarExpr buffer_var, Expr value, Expr index);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("buffer_var", &buffer_var);
         v->Visit("value", &value);
         v->Visit("index", &index);
     }
@@ -458,9 +468,13 @@ struct Provide : public StmtNode<Provide> {
  * size. The buffer lives for at most the duration of the body
  * statement, within which it is freed. It is an error for an allocate
  * node not to contain a free node of the same buffer. Allocation only
- * occurs if the condition evaluates to true. */
+ * occurs if the condition evaluates to true.
+ *
+ * Each allocate will create a new Variable of type handle,
+ * that corresponds to the allocated space
+ */
 struct Allocate : public StmtNode<Allocate> {
-    std::string name;
+    VarExpr buffer_var;
     Type type;
     Array<Expr> extents;
     Expr condition;
@@ -476,7 +490,7 @@ struct Allocate : public StmtNode<Allocate> {
     std::string free_function;
     Stmt body;
 
-    EXPORT static Stmt make(std::string name,
+    EXPORT static Stmt make(VarExpr buffer_var,
                             Type type,
                             Array<Expr> extents,
                             Expr condition, Stmt body,
@@ -491,7 +505,7 @@ struct Allocate : public StmtNode<Allocate> {
     EXPORT int32_t constant_allocation_size() const;
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("buffer_var", &buffer_var);
         v->Visit("dtype", &type);
         v->Visit("extents", &extents);
         v->Visit("condition", &condition);
@@ -502,29 +516,16 @@ struct Allocate : public StmtNode<Allocate> {
 
 /** Free the resources associated with the given buffer. */
 struct Free : public StmtNode<Free> {
-    std::string name;
+    VarExpr buffer_var;
 
-    EXPORT static Stmt make(std::string name);
+    EXPORT static Stmt make(VarExpr handle);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("buffer_var", &buffer_var);
     }
     static const IRNodeType _type_info = IRNodeType::Free;
     static constexpr const char* _type_key = "Free";
 };
-
-/** A single-dimensional span. Includes all numbers between min and
- * (min + extent - 1) */
-struct Range {
-    Expr min, extent;
-    Range() {}
-    Range(Expr min, Expr extent) : min(min), extent(extent) {
-        internal_assert(min.type() == extent.type()) << "Region min and extent must have same type\n";
-    }
-};
-
-/** A multi-dimensional box. The outer product of the elements */
-typedef std::vector<Range> Region;
 
 /** Allocate a multi-dimensional buffer of the given type and
  * size. Create some scratch memory that will back the function 'name'
@@ -532,18 +533,21 @@ typedef std::vector<Range> Region;
  * (min, extent) pairs for each dimension. Allocation only occurs if
  * the condition evaluates to true. */
 struct Realize : public StmtNode<Realize> {
-    std::string name;
+    FunctionRef func;
     std::vector<Type> types;
     Region bounds;
     Expr condition;
     Stmt body;
 
-    EXPORT static Stmt make(const std::string &name, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body);
+    EXPORT static Stmt make(FunctionRef func,
+                            const std::vector<Type> &types,
+                            const Region &bounds,
+                            Expr condition, Stmt body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("func", &func);
         // v->Visit("types", &types);
-        // v->Visit("bounds", &bounds);
+        v->Visit("bounds", &bounds);
         v->Visit("condition", &condition);
         v->Visit("body", &body);
     }
@@ -684,7 +688,7 @@ struct Call : public ExprNode<Call> {
     // onto a pointer to that function for the purposes of reference
     // counting only. Self-references in update definitions do not
     // have this set, to avoid cycles.
-    std::shared_ptr<const IRNode> func;
+    FunctionRef func;
 
     // If that function has multiple values, which value does this
     // call node refer to?
@@ -694,7 +698,7 @@ struct Call : public ExprNode<Call> {
                             std::string name,
                             Array<Expr> args,
                             CallType call_type,
-                            std::shared_ptr<const IRNode> func = nullptr,
+                            FunctionRef func = FunctionRef(),
                             int value_index = 0);
 
     /** Check if a call node is pure within a pipeline, meaning that
@@ -718,19 +722,29 @@ struct Call : public ExprNode<Call> {
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
         v->Visit("name", &name);
-        // TODO(tqchen)
         v->Visit("args", &args);
         v->Visit("call_type", &call_type);
-        // v->Visit("func", &func);
+        v->Visit("func", &func);
         v->Visit("value_index", &value_index);
     }
     static const IRNodeType _type_info = IRNodeType::Call;
     static constexpr const char* _type_key = "Call";
 };
 
-/** A named variable. Might be a loop variable, function argument,
+/** A named variable. Might be defined in
+ * a loop variable, function argument,
  * parameter, reduction variable, or something defined by a Let or
- * LetStmt node. */
+ * LetStmt node.
+ *
+ * User should define each Variable at only one place(like SSA).
+ * e.g do not let same var appear on two lets.
+ *
+ * IR nodes that defines a VarExpr
+ * - Allocate
+ * - For
+ * - Let
+ * - LetStmt
+ */
 struct Variable : public ExprNode<Variable> {
     /**
      * variable is uniquely identified by its address instead of name
@@ -758,7 +772,7 @@ struct Variable : public ExprNode<Variable> {
 };
 
 /** A for loop. Execute the 'body' statement for all values of the
- * variable 'name' from 'min' to 'min + extent'. There are four
+ * variable loop_var from 'min' to 'min + extent'. There are four
  * types of For nodes. A 'Serial' for loop is a conventional
  * one. In a 'Parallel' for loop, each iteration of the loop
  * happens in parallel or in some unspecified order. In a
@@ -770,16 +784,19 @@ struct Variable : public ExprNode<Variable> {
  * statement. Again in this case, 'extent' should be a small
  * integer constant. */
 struct For : public StmtNode<For> {
-    std::string name;
+    VarExpr loop_var;
     Expr min, extent;
     ForType for_type;
     DeviceAPI device_api;
     Stmt body;
 
-    EXPORT static Stmt make(std::string name, Expr min, Expr extent, ForType for_type, DeviceAPI device_api, Stmt body);
+    EXPORT static Stmt make(VarExpr loop_var,
+                            Expr min, Expr extent,
+                            ForType for_type,
+                            DeviceAPI device_api, Stmt body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("loop_var", &loop_var);
         v->Visit("min", &min);
         v->Visit("extent", &extent);
         v->Visit("for_type", &for_type);
@@ -790,6 +807,11 @@ struct For : public StmtNode<For> {
     static constexpr const char* _type_key = "For";
 };
 
+}
+
+// inline functions
+inline const Internal::Variable* VarExpr::operator->() const {
+    return static_cast<const Internal::Variable*>(node_.get());
 }
 }
 
