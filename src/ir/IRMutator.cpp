@@ -6,6 +6,7 @@ namespace Internal {
 using std::vector;
 
 Expr IRMutator::mutate(Expr e) {
+    no_mutation_ = true;
     if (e.defined()) {
         e.accept(this);
     } else {
@@ -20,6 +21,7 @@ Expr IRMutator::mutate(Expr e) {
 }
 
 Stmt IRMutator::mutate(Stmt s) {
+    no_mutation_ = true;
     if (s.defined()) {
         s.accept(this);
     } else {

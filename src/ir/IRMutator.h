@@ -29,8 +29,8 @@ public:
      * these in your subclass to mutate sub-expressions and
      * sub-statements.
      */
-    EXPORT Expr mutate(Expr expr);
-    EXPORT Stmt mutate(Stmt stmt);
+    virtual EXPORT Expr mutate(Expr expr);
+    virtual EXPORT Stmt mutate(Stmt stmt);
 
 private:
     /** Whether the accept returns a new result in expr or stmt */
