@@ -238,6 +238,8 @@ struct VarExpr : public Expr {
      * because most VarExpr are used as looping variable.
      */
     VarExpr(const std::string &name_hint, Type t = Int(32));
+    /** return internal content as Variable */
+    inline const Internal::Variable* get() const;
     /** return internal variable pointer */
     inline const Internal::Variable* operator->() const;
 };

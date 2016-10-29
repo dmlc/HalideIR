@@ -36,6 +36,8 @@ Goal: base, ir, pass are invariant of LLVM, codegen can depend on LLVM
 - Make every field the IR reflectable and accessible from python
   - std::vector<> - > Array<>(tvm/array)
   - struct Range ->  Range(Range.h)
+- Remove use of string name mapping in the Scope
+- Move div_imp, mod_imp from Simplify.h to Divmod.h to avoid cyclic include
 
 ## TODO: tqchen
   - TODO(tqchen) make everything serializable

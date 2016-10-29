@@ -810,6 +810,9 @@ struct For : public StmtNode<For> {
 }
 
 // inline functions
+inline const Internal::Variable* VarExpr::get() const {
+    return static_cast<const Internal::Variable*>(node_.get());
+}
 inline const Internal::Variable* VarExpr::operator->() const {
     return static_cast<const Internal::Variable*>(node_.get());
 }
