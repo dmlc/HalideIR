@@ -228,7 +228,8 @@ public:
             e->name == op->name &&
             e->value_index == op->value_index &&
             e->call_type == op->call_type &&
-            e->args.size() == op->args.size()) {
+            e->args.size() == op->args.size() &&
+            e->func.same_as(op->func)) {
             for (size_t i = 0; result && (i < e->args.size()); i++) {
                 expr = e->args[i];
                 op->args[i].accept(this);

@@ -335,6 +335,7 @@ void IRComparer::visit(const Call *op) {
     compare_scalar(e->call_type, op->call_type);
     compare_scalar(e->value_index, op->value_index);
     compare_expr_vector(e->args, op->args);
+    compare_node_refs(e->func, op->func);
 }
 
 void IRComparer::visit(const Let *op) {
@@ -390,7 +391,7 @@ void IRComparer::visit(const Store *op) {
 void IRComparer::visit(const Provide *op) {
     const Provide *s = stmt.as<Provide>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(s->func, op->func);
     compare_expr_vector(s->args, op->args);
     compare_expr_vector(s->values, op->values);
 }

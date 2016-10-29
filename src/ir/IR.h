@@ -449,14 +449,14 @@ struct Store : public StmtNode<Store> {
  * multi-dimensional array. It gets lowered to a conventional
  * Store node. */
 struct Provide : public StmtNode<Provide> {
-    std::string name;
+    FunctionRef func;
     Array<Expr> values;
     Array<Expr> args;
 
-    EXPORT static Stmt make(std::string name, Array<Expr> values, Array<Expr> args);
+    EXPORT static Stmt make(FunctionRef func, Array<Expr> values, Array<Expr> args);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
-        v->Visit("name", &name);
+        v->Visit("func", &func);
         v->Visit("values", &values);
         v->Visit("args", &args);
     }

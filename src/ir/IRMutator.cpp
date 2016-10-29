@@ -261,7 +261,7 @@ void IRMutator::visit(const Provide *op) {
     if (!changed) {
         return_self();
     } else {
-        return_value(Provide::make(op->name, new_values, new_args));
+        return_value(Provide::make(op->func, new_values, new_args));
     }
 }
 

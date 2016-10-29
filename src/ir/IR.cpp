@@ -267,7 +267,7 @@ Stmt Store::make(VarExpr buffer_var, Expr value, Expr index) {
     return Stmt(node);
 }
 
-Stmt Provide::make(std::string name, Array<Expr> values, Array<Expr> args) {
+Stmt Provide::make(FunctionRef func, Array<Expr> values, Array<Expr> args) {
     internal_assert(!values.empty()) << "Provide of no values\n";
     for (size_t i = 0; i < values.size(); i++) {
         internal_assert(values[i].defined()) << "Provide of undefined value\n";
@@ -277,7 +277,7 @@ Stmt Provide::make(std::string name, Array<Expr> values, Array<Expr> args) {
     }
 
     std::shared_ptr<Provide> node = std::make_shared<Provide>();
-    node->name = name;
+    node->func = func;
     node->values = values;
     node->args = args;
     return Stmt(node);

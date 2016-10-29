@@ -446,7 +446,7 @@ void IRPrinter::visit(const Store *op) {
 
 void IRPrinter::visit(const Provide *op) {
     do_indent();
-    stream << op->name << "(";
+    stream << op->func->name() << "(";
     for (size_t i = 0; i < op->args.size(); i++) {
         print(op->args[i]);
         if (i < op->args.size() - 1) stream << ", ";
