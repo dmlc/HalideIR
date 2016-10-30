@@ -5,7 +5,7 @@
  * Routines for statically determining what expressions are divisible by.
  */
 
-#include "pass/Scope.h"
+#include "Scope.h"
 
 namespace Halide {
 namespace Internal {

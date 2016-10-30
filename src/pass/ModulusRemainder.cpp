@@ -1,8 +1,8 @@
-#include "pass/ModulusRemainder.h"
+#include "ModulusRemainder.h"
+#include "Divmod.h"
 #include "ir/IROperator.h"
 #include "ir/IRPrinter.h"
 #include "ir/IR.h"
-#include "pass/Divmod.h"
 
 // This file is largely a port of parts of src/analysis.ml
 namespace Halide {
