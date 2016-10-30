@@ -36,7 +36,6 @@ private:
     /** Whether the accept returns a new result in expr or stmt */
     bool no_mutation_{false};
 
-protected:
     /** visit methods that take Exprs assign to this to return their
      * new value */
     Expr expr_;
@@ -45,6 +44,7 @@ protected:
      * new value */
     Stmt stmt_;
 
+protected:
     /** visit method call this to return new value */
     inline void return_value(Expr expr) {
         expr_ = std::move(expr);
