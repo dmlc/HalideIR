@@ -610,12 +610,12 @@ struct Call : public ExprNode<Call> {
     std::string name;
     Array<Expr> args;
     enum CallType : int {
-      Extern,       //< A call to an external C-ABI function, possibly with side-effects
-      ExternCPlusPlus, //< A call to an external C-ABI function, possibly with side-effects
-      PureExtern,   //< A call to a guaranteed-side-effect-free external function
-      Halide,       //< A call to a Func
-      Intrinsic,    //< A possibly-side-effecty compiler intrinsic, which has special handling during codegen
-      PureIntrinsic //< A side-effect-free version of the above.
+      Extern = 0,       //< A call to an external C-ABI function, possibly with side-effects
+      ExternCPlusPlus = 1, //< A call to an external C-ABI function, possibly with side-effects
+      PureExtern = 2,   //< A call to a guaranteed-side-effect-free external function
+      Halide = 3,       //< A call to a Func
+      Intrinsic = 4,    //< A possibly-side-effecty compiler intrinsic, which has special handling during codegen
+      PureIntrinsic = 5 //< A side-effect-free version of the above.
     };
     CallType call_type;
 

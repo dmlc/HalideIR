@@ -38,11 +38,6 @@ Goal: base, ir, pass are invariant of LLVM, codegen can depend on LLVM
   - struct Range ->  Range(Range.h)
 - Remove use of string name mapping in the Scope
 - Move div_imp, mod_imp from Simplify.h to Divmod.h to avoid cyclic include
-
-## TODO: tqchen
-  - TODO(tqchen) make everything serializable
-
-
-
-## TODO haichen
-- Add simplify to pass
+- Remove constructor Range(min, extent) to Range::make_with_min_extend(min, extent)
+  - The original constructor could make new user confuse since a typical way is
+    range(begin, end) in both c++ and python

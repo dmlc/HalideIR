@@ -304,7 +304,8 @@ void IRMutator::visit(const Realize *op) {
         Expr new_extent = mutate(old_extent);
         if (!new_min.same_as(old_min))       bounds_changed = true;
         if (!new_extent.same_as(old_extent)) bounds_changed = true;
-        new_bounds.push_back(Range(new_min, new_extent));
+        new_bounds.push_back(
+            Range::make_by_min_extent(new_min, new_extent));
     }
 
     Stmt body = mutate(op->body);

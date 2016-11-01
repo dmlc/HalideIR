@@ -21,12 +21,21 @@ class Range : public NodeRef {
   /*! \brief constructor */
   Range() {}
   Range(std::shared_ptr<Node> n) : NodeRef(n) {}
-  inline Range(Expr min, Expr extent);
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container
    */
   inline const RangeNode* operator->() const;
+  /*!
+   * \brief construct a new range with min and extent
+   *  The corresponding constructor is removed,
+   *  because that is counter convention of tradition meaning
+   *  of range(begin, end)
+   *
+   * \param min The minimum range.
+   * \param extent The extent of the range.
+   */
+  static inline Range make_by_min_extent(Expr min, Expr extent);
 };
 
 /*! \brief range over one dimension */
@@ -53,10 +62,10 @@ inline const RangeNode* Range::operator->() const {
   return static_cast<const RangeNode*>(node_.get());
 }
 
-inline Range::Range(Expr min, Expr extent)
-    : NodeRef(std::make_shared<RangeNode>(min, extent)) {
+inline Range Range::make_by_min_extent(Expr min, Expr extent) {
   internal_assert(min.type() == extent.type())
       << "Region min and extent must have same type\n";
+  return Range(std::make_shared<RangeNode>(min, extent));
 }
 
 // overload print function
