@@ -12,7 +12,7 @@
 #include <type_traits>
 #include "base/Type.h"
 
-/** namespace of new IR ocde */
+/** namespace of tvm base code */
 namespace tvm {
 
 using Halide::Type;
@@ -72,16 +72,8 @@ class Node {
 
   // node ref can see this
   friend class NodeRef;
-  /*!
-   * \brief optional: safe destruction function
-   *  Can be called in destructor of composite types.
-   *  This can be used to avoid stack overflow when
-   *  recursive destruction long graph(1M nodes),
-   *
-   *  It is totally OK to not call this in destructor.
-   */
-  void Destroy();
 };
+
 
 /*! \brief base class of all node reference object */
 class NodeRef {

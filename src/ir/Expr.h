@@ -14,6 +14,7 @@
 #include "base/Type.h"
 #include "base/Util.h"
 #include "tvm/node.h"
+#include "tvm/ir_node.h"
 #include "tvm/array.h"
 
 namespace Halide {
@@ -67,11 +68,12 @@ enum class IRNodeType : int {
     Realize,
     Block,
     IfThenElse,
-    Evaluate
+    Evaluate,
+    ExtensionExpr
 };
 
 /** The abstract base classes for a node in the Halide IR. */
-struct IRNode : public Node {
+struct IRNode : public tvm::IRNode {
 
     /** We use the visitor pattern to traverse IR nodes throughout the
      * compiler, so we have a virtual accept method which accepts
@@ -86,7 +88,6 @@ struct IRNode : public Node {
      * without it), and we only want it for IR nodes. */
     virtual IRNodeType type_info() const = 0;
 };
-
 
 /** IR nodes are split into expressions and statements. These are
    similar to expressions and statements in C - expressions
@@ -116,6 +117,12 @@ struct ExprNode : public BaseExprNode {
     EXPORT void accept(IRVisitor *v) const;
     IRNodeType type_info() const final {return T::_type_info;}
     const char* type_key() const final {return T::_type_key;}
+    ExprNode() {
+      static uint32_t type_index = TypeKey2Index(T::_type_key);
+      // type index for each node is initialized in here.
+      // used by IRFunctor
+      type_index_ = type_index;
+    }
 };
 
 template<typename T>
@@ -123,37 +130,26 @@ struct StmtNode : public BaseStmtNode {
     EXPORT void accept(IRVisitor *v) const;
     IRNodeType type_info() const final {return T::_type_info;}
     const char* type_key() const final {return T::_type_key;}
+    StmtNode() {
+      static uint32_t type_index = TypeKey2Index(T::_type_key);
+      // type index for each node is initialized in here.
+      // used by IRFunctor
+      type_index_ = type_index;
+    }
 };
 
 /** IR nodes are passed around opaque handles to them. This is a
    base class for those handles. It manages the reference count,
    and dispatches visitors. */
-struct IRHandle : public NodeRef {
+struct IRHandle : public tvm::IRNodeRef {
     IRHandle() {}
-    IRHandle(Node* p) { node_.reset(p);}
-    IRHandle(std::shared_ptr<Node> p) : NodeRef(p) {}
+    IRHandle(std::shared_ptr<Node> p) : IRNodeRef(p) {}
 
     /** Dispatch to the correct visitor method for this node. E.g. if
      * this node is actually an Add node, then this will call
      * IRVisitor::visit(const Add *) */
     void accept(IRVisitor *v) const {
         static_cast<const IRNode*>(node_.get())->accept(v);
-    }
-
-    /** Downcast this ir node to its actual type (e.g. Add, or
-     * Select). This returns nullptr if the node is not of the requested
-     * type. Example usage:
-     *
-     * if (const Add *add = node->as<Add>()) {
-     *   // This is an add node
-     * }
-     */
-    template<typename T> const T *as() const {
-        const IRNode* ptr = this->get();
-        if (ptr && ptr->type_info() == T::_type_info) {
-            return static_cast<const T*>(ptr);
-        }
-        return nullptr;
     }
     /** return internal content as IRNode */
     inline const IRNode* get() const {

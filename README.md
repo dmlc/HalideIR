@@ -41,3 +41,5 @@ Goal: base, ir, pass are invariant of LLVM, codegen can depend on LLVM
 - Remove constructor Range(min, extent) to Range::make_with_min_extend(min, extent)
   - The original constructor could make new user confuse since a typical way is
     range(begin, end) in both c++ and python
+- Add a more flexible RTTI and dynamic dispatch support, see src/tvm/ir_node.h
+  - IRFunctor allows plugin of new IR Node more easily, without chaning interface
