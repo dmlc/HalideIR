@@ -42,7 +42,9 @@ class Array : public NodeRef {
   /*!
    * \brief default constructor
    */
-  Array() {}
+  Array() {
+    node_ = std::make_shared<ArrayNode>();
+  }
   /*!
    * \brief move constructor
    * \param other source
