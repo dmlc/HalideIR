@@ -61,7 +61,7 @@ class Array : public NodeRef {
    * \brief constructor from pointer
    * \param n the container pointer
    */
-  Array(std::shared_ptr<Node> n) : NodeRef(n) {}
+  explicit Array(std::shared_ptr<Node> n) : NodeRef(n) {}
   /*!
    * \brief constructor from iterator
    * \param begin begin of iterator

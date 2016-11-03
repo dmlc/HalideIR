@@ -15,8 +15,8 @@
  */
 
 #include <ostream>
-
-#include "IRVisitor.h"
+#include "./IR.h"
+#include "./IRVisitor.h"
 
 namespace Halide {
 
@@ -42,11 +42,16 @@ EXPORT std::ostream &operator<<(std::ostream &stream, const Stmt &);
  * readable form */
 EXPORT std::ostream &operator<<(std::ostream &stream, const ForType &);
 
-/** An IRVisitor that emits IR to the given output stream in a human
+/**
+ * An IRVisitor that emits IR to the given output stream in a human
  * readable form. Can be subclassed if you want to modify the way in
  * which it prints.
+ *
+ * IRPrinter is re-implemeneted using IRFunctor, as a demonstration
+ * example on how Visitor based printing can be adopted to IRFunctor.
+ *
  */
-class IRPrinter : public IRVisitor {
+class IRPrinter {
 public:
     /** Construct an IRPrinter pointed at a given output stream
      * (e.g. std::cout, or a std::ofstream) */
@@ -60,7 +65,6 @@ public:
 
     EXPORT static void test();
 
-protected:
     /** The stream we're outputting on */
     std::ostream &stream;
 
@@ -71,46 +75,9 @@ protected:
     /** Emit spaces according to the current indentation level */
     void do_indent();
 
-    void visit(const IntImm *);
-    void visit(const UIntImm *);
-    void visit(const FloatImm *);
-    void visit(const StringImm *);
-    void visit(const Cast *);
-    void visit(const Variable *);
-    void visit(const Add *);
-    void visit(const Sub *);
-    void visit(const Mul *);
-    void visit(const Div *);
-    void visit(const Mod *);
-    void visit(const Min *);
-    void visit(const Max *);
-    void visit(const EQ *);
-    void visit(const NE *);
-    void visit(const LT *);
-    void visit(const LE *);
-    void visit(const GT *);
-    void visit(const GE *);
-    void visit(const And *);
-    void visit(const Or *);
-    void visit(const Not *);
-    void visit(const Select *);
-    void visit(const Load *);
-    void visit(const Ramp *);
-    void visit(const Broadcast *);
-    void visit(const Call *);
-    void visit(const Let *);
-    void visit(const LetStmt *);
-    void visit(const AssertStmt *);
-    void visit(const ProducerConsumer *);
-    void visit(const For *);
-    void visit(const Store *);
-    void visit(const Provide *);
-    void visit(const Allocate *);
-    void visit(const Free *);
-    void visit(const Realize *);
-    void visit(const Block *);
-    void visit(const IfThenElse *);
-    void visit(const Evaluate *);
+    using FType = tvm::IRFunctor<void(const IRNodeRef&, IRPrinter *)>;
+
+    EXPORT static FType& vtable();
 };
 }
 }

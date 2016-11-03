@@ -110,11 +110,13 @@ IRPrinter::IRPrinter(ostream &s) : stream(s), indent(0) {
 }
 
 void IRPrinter::print(Expr ir) {
-    ir.accept(this);
+    static const FType& f = vtable();
+    f(ir, this);
 }
 
 void IRPrinter::print(Stmt ir) {
-    ir.accept(this);
+    static const FType& f = vtable();
+    f(ir, this);
 }
 
 
@@ -122,19 +124,28 @@ void IRPrinter::do_indent() {
     for (int i = 0; i < indent; i++) stream << ' ';
 }
 
-void IRPrinter::visit(const IntImm *op) {
+IRPrinter::FType& IRPrinter::vtable() {
+  static FType inst;
+  return inst;
+}
+
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<IntImm>([](const IntImm *op, IRPrinter *p) {
     if (op->type == Int(32)) {
-        stream << op->value;
+        p->stream << op->value;
     } else {
-        stream << "(" << op->type << ")" << op->value;
+        p->stream << "(" << op->type << ")" << op->value;
     }
-}
+  });
 
-void IRPrinter::visit(const UIntImm *op) {
-    stream << "(" << op->type << ")" << op->value;
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<UIntImm>([](const UIntImm *op, IRPrinter* p) {
+    p->stream << "(" << op->type << ")" << op->value;
+  });
 
-void IRPrinter::visit(const FloatImm *op) {
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<FloatImm>([](const FloatImm *op, IRPrinter* p) {
+  auto& stream = p->stream;
   switch (op->type.bits()) {
     case 64:
         stream << op->value;
@@ -148,9 +159,11 @@ void IRPrinter::visit(const FloatImm *op) {
     default:
         internal_error << "Bad bit-width for float: " << op->type << "\n";
     }
-}
+  });
 
-void IRPrinter::visit(const StringImm *op) {
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<StringImm>([](const StringImm *op, IRPrinter *p) {
+    auto& stream = p->stream;
     stream << '"';
     for (size_t i = 0; i < op->value.size(); i++) {
         unsigned char c = op->value[i];
@@ -181,387 +194,395 @@ void IRPrinter::visit(const StringImm *op) {
         }
     }
     stream << '"';
-}
+  });
 
-void IRPrinter::visit(const Cast *op) {
-    stream << op->type << '(';
-    print(op->value);
-    stream << ')';
-}
-
-void IRPrinter::visit(const Variable *op) {
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Cast>([](const Cast *op, IRPrinter *p) {
+    p->stream << op->type << '(';
+    p->print(op->value);
+    p->stream << ')';
+  })
+.set_dispatch<Variable>([](const Variable *op, IRPrinter* p) {
     // omit the type
     // stream << op->name << "." << op->type;
-    stream << op->name_hint;
-}
+    p->stream << op->name_hint;
+  })
+.set_dispatch<Add>([](const Add *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " + ";
+    p->print(op->b);
+    p->stream << ')';
+  })
+.set_dispatch<Sub>([](const Sub *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " - ";
+    p->print(op->b);
+    p->stream << ')';
+  })
+.set_dispatch<Mul>([](const Mul *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << "*";
+    p->print(op->b);
+    p->stream << ')';
+  })
+.set_dispatch<Div>([](const Div *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << "/";
+    p->print(op->b);
+    p->stream << ')';
+  })
+.set_dispatch<Mod>([](const Mod *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " % ";
+    p->print(op->b);
+    p->stream << ')';
+})
+.set_dispatch<Min>([](const Min *op, IRPrinter* p) {
+    p->stream << "min(";
+    p->print(op->a);
+    p->stream << ", ";
+    p->print(op->b);
+    p->stream << ")";
+})
+.set_dispatch<Max>([](const Max *op, IRPrinter* p) {
+    p->stream << "max(";
+    p->print(op->a);
+    p->stream << ", ";
+    p->print(op->b);
+    p->stream << ")";
+})
+.set_dispatch<EQ>([](const EQ *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " == ";
+    p->print(op->b);
+    p->stream << ')';
+})
+.set_dispatch<NE>([](const NE *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " != ";
+    p->print(op->b);
+    p->stream << ')';
+})
+.set_dispatch<LT>([](const LT *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " < ";
+    p->print(op->b);
+    p->stream << ')';
+})
+.set_dispatch<LE>([](const LE *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " <= ";
+    p->print(op->b);
+    p->stream << ')';
+})
+.set_dispatch<GT>([](const GT *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " > ";
+    p->print(op->b);
+    p->stream << ')';
+})
+.set_dispatch<GE>([](const GE *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " >= ";
+    p->print(op->b);
+    p->stream << ')';
+});
 
-void IRPrinter::visit(const Add *op) {
-    stream << '(';
-    print(op->a);
-    stream << " + ";
-    print(op->b);
-    stream << ')';
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<And>([](const And *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " && ";
+    p->print(op->b);
+    p->stream << ')';
+});
 
-void IRPrinter::visit(const Sub *op) {
-    stream << '(';
-    print(op->a);
-    stream << " - ";
-    print(op->b);
-    stream << ')';
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Or>([](const Or *op, IRPrinter* p) {
+    p->stream << '(';
+    p->print(op->a);
+    p->stream << " || ";
+    p->print(op->b);
+    p->stream << ')';
+});
 
-void IRPrinter::visit(const Mul *op) {
-    stream << '(';
-    print(op->a);
-    stream << "*";
-    print(op->b);
-    stream << ')';
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Not>([](const Not *op, IRPrinter* p) {
+    p->stream << '!';
+    p->print(op->a);
+});
 
-void IRPrinter::visit(const Div *op) {
-    stream << '(';
-    print(op->a);
-    stream << "/";
-    print(op->b);
-    stream << ')';
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Select>([](const Select *op, IRPrinter* p) {
+    p->stream << "select(";
+    p->print(op->condition);
+    p->stream << ", ";
+    p->print(op->true_value);
+    p->stream << ", ";
+    p->print(op->false_value);
+    p->stream << ")";
+});
 
-void IRPrinter::visit(const Mod *op) {
-    stream << '(';
-    print(op->a);
-    stream << " % ";
-    print(op->b);
-    stream << ')';
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Load>([](const Load *op, IRPrinter* p) {
+    p->stream << op->buffer_var << "[";
+    p->print(op->index);
+    p->stream << "]";
+});
 
-void IRPrinter::visit(const Min *op) {
-    stream << "min(";
-    print(op->a);
-    stream << ", ";
-    print(op->b);
-    stream << ")";
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Ramp>([](const Ramp *op, IRPrinter* p) {
+    p->stream << "ramp(";
+    p->print(op->base);
+    p->stream << ", ";
+    p->print(op->stride);
+    p->stream << ", " << op->lanes << ")";
+});
 
-void IRPrinter::visit(const Max *op) {
-    stream << "max(";
-    print(op->a);
-    stream << ", ";
-    print(op->b);
-    stream << ")";
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Broadcast>([](const Broadcast *op, IRPrinter* p) {
+    p->stream << "x" << op->lanes << "(";
+    p->print(op->value);
+    p->stream << ")";
+});
 
-void IRPrinter::visit(const EQ *op) {
-    stream << '(';
-    print(op->a);
-    stream << " == ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const NE *op) {
-    stream << '(';
-    print(op->a);
-    stream << " != ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const LT *op) {
-    stream << '(';
-    print(op->a);
-    stream << " < ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const LE *op) {
-    stream << '(';
-    print(op->a);
-    stream << " <= ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const GT *op) {
-    stream << '(';
-    print(op->a);
-    stream << " > ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const GE *op) {
-    stream << '(';
-    print(op->a);
-    stream << " >= ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const And *op) {
-    stream << '(';
-    print(op->a);
-    stream << " && ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const Or *op) {
-    stream << '(';
-    print(op->a);
-    stream << " || ";
-    print(op->b);
-    stream << ')';
-}
-
-void IRPrinter::visit(const Not *op) {
-    stream << '!';
-    print(op->a);
-}
-
-void IRPrinter::visit(const Select *op) {
-    stream << "select(";
-    print(op->condition);
-    stream << ", ";
-    print(op->true_value);
-    stream << ", ";
-    print(op->false_value);
-    stream << ")";
-}
-
-void IRPrinter::visit(const Load *op) {
-    stream << op->buffer_var << "[";
-    print(op->index);
-    stream << "]";
-}
-
-void IRPrinter::visit(const Ramp *op) {
-    stream << "ramp(";
-    print(op->base);
-    stream << ", ";
-    print(op->stride);
-    stream << ", " << op->lanes << ")";
-}
-
-void IRPrinter::visit(const Broadcast *op) {
-    stream << "x" << op->lanes << "(";
-    print(op->value);
-    stream << ")";
-}
-
-void IRPrinter::visit(const Call *op) {
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Call>([](const Call *op, IRPrinter* p) {
     // Special-case some intrinsics for readability
     if (op->is_intrinsic(Call::extract_buffer_host)) {
-        print(op->args[0]);
-        stream << ".host";
+        p->print(op->args[0]);
+        p->stream << ".host";
         return;
     } else if (op->is_intrinsic(Call::extract_buffer_min)) {
-        print(op->args[0]);
-        stream << ".min[" << op->args[1] << "]";
+        p->print(op->args[0]);
+        p->stream << ".min[" << op->args[1] << "]";
         return;
     } else if (op->is_intrinsic(Call::extract_buffer_max)) {
-        print(op->args[0]);
-        stream << ".max[" << op->args[1] << "]";
+        p->print(op->args[0]);
+        p->stream << ".max[" << op->args[1] << "]";
         return;
     }
 
     // TODO: Print indication of C vs C++?
-    stream << op->name << "(";
+    p->stream << op->name << "(";
     for (size_t i = 0; i < op->args.size(); i++) {
-        print(op->args[i]);
+        p->print(op->args[i]);
         if (i < op->args.size() - 1) {
-            stream << ", ";
+            p->stream << ", ";
         }
     }
-    stream << ")";
-}
+    p->stream << ")";
+});
 
-void IRPrinter::visit(const Let *op) {
-    stream << "(let " << op->var << " = ";
-    print(op->value);
-    stream << " in ";
-    print(op->body);
-    stream << ")";
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Let>([](const Let *op, IRPrinter* p) {
+    p->stream << "(let " << op->var << " = ";
+    p->print(op->value);
+    p->stream << " in ";
+    p->print(op->body);
+    p->stream << ")";
+});
 
-void IRPrinter::visit(const LetStmt *op) {
-    do_indent();
-    stream << "let " << op->var << " = ";
-    print(op->value);
-    stream << '\n';
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<LetStmt>([](const LetStmt *op, IRPrinter* p) {
+    p->do_indent();
+    p->stream << "let " << op->var << " = ";
+    p->print(op->value);
+    p->stream << '\n';
 
-    print(op->body);
-}
+    p->print(op->body);
+});
 
-void IRPrinter::visit(const AssertStmt *op) {
-    do_indent();
-    stream << "assert(";
-    print(op->condition);
-    stream << ", ";
-    print(op->message);
-    stream << ")\n";
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<AssertStmt>([](const AssertStmt *op, IRPrinter* p) {
+    p->do_indent();
+    p->stream << "assert(";
+    p->print(op->condition);
+    p->stream << ", ";
+    p->print(op->message);
+    p->stream << ")\n";
+});
 
-void IRPrinter::visit(const ProducerConsumer *op) {
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<ProducerConsumer>([](const ProducerConsumer *op, IRPrinter* p) {
     if (op->is_producer) {
-        do_indent();
-        stream << "produce " << op->func->name() << " {\n";
-        indent += 2;
-        print(op->body);
-        indent -= 2;
-        do_indent();
-        stream << "}\n";
+        p->do_indent();
+        p->stream << "produce " << op->func->name() << " {\n";
+        p->indent += 2;
+        p->print(op->body);
+        p->indent -= 2;
+        p->do_indent();
+        p->stream << "}\n";
     } else {
-        print(op->body);
+        p->print(op->body);
     }
 
-}
+});
 
-void IRPrinter::visit(const For *op) {
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<For>([](const For *op, IRPrinter* p) {
 
-    do_indent();
-    stream << op->for_type << op->device_api << " (" << op->loop_var << ", ";
-    print(op->min);
-    stream << ", ";
-    print(op->extent);
-    stream << ") {\n";
+    p->do_indent();
+    p->stream << op->for_type << op->device_api << " (" << op->loop_var << ", ";
+    p->print(op->min);
+    p->stream << ", ";
+    p->print(op->extent);
+    p->stream << ") {\n";
 
-    indent += 2;
-    print(op->body);
-    indent -= 2;
+    p->indent += 2;
+    p->print(op->body);
+    p->indent -= 2;
 
-    do_indent();
-    stream << "}\n";
-}
+    p->do_indent();
+    p->stream << "}\n";
+});
 
-void IRPrinter::visit(const Store *op) {
-    do_indent();
-    stream << op->buffer_var << "[";
-    print(op->index);
-    stream << "] = ";
-    print(op->value);
-    stream << '\n';
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Store>([](const Store *op, IRPrinter* p) {
+    p->do_indent();
+    p->stream << op->buffer_var << "[";
+    p->print(op->index);
+    p->stream << "] = ";
+    p->print(op->value);
+    p->stream << '\n';
+});
 
-void IRPrinter::visit(const Provide *op) {
-    do_indent();
-    stream << op->func->name() << "(";
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Provide>([](const Provide *op, IRPrinter* p) {
+    p->do_indent();
+    p->stream << op->func->name() << "(";
     for (size_t i = 0; i < op->args.size(); i++) {
-        print(op->args[i]);
-        if (i < op->args.size() - 1) stream << ", ";
+        p->print(op->args[i]);
+        if (i < op->args.size() - 1) p->stream << ", ";
     }
-    stream << ") = ";
+    p->stream << ") = ";
     if (op->values.size() > 1) {
-        stream << "{";
+        p->stream << "{";
     }
     for (size_t i = 0; i < op->values.size(); i++) {
         if (i > 0) {
-            stream << ", ";
+            p->stream << ", ";
         }
-        print(op->values[i]);
+        p->print(op->values[i]);
     }
     if (op->values.size() > 1) {
-        stream << "}";
+        p->stream << "}";
     }
 
-    stream << '\n';
-}
+    p->stream << '\n';
+});
 
-void IRPrinter::visit(const Allocate *op) {
-    do_indent();
-    stream << "allocate " << op->buffer_var << "[" << op->type;
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Allocate>([](const Allocate *op, IRPrinter* p) {
+    p->do_indent();
+    p->stream << "allocate " << op->buffer_var << "[" << op->type;
     for (size_t i = 0; i < op->extents.size(); i++) {
-        stream  << " * ";
-        print(op->extents[i]);
+        p->stream << " * ";
+        p->print(op->extents[i]);
     }
-    stream << "]";
+    p->stream << "]";
     if (!is_one(op->condition)) {
-        stream << " if ";
-        print(op->condition);
+        p->stream << " if ";
+        p->print(op->condition);
     }
     if (op->new_expr.defined()) {
-        stream << "\n custom_new { " << op->new_expr << " }";
+        p->stream << "\n custom_new { " << op->new_expr << " }";
     }
     if (!op->free_function.empty()) {
-        stream << "\n custom_delete { " << op->free_function << "(<args>); }";
+        p->stream << "\n custom_delete { " << op->free_function << "(<args>); }";
     }
-    stream << "\n";
-    print(op->body);
-}
+    p->stream << "\n";
+    p->print(op->body);
+});
 
-void IRPrinter::visit(const Free *op) {
-    do_indent();
-    stream << "free " << op->buffer_var;
-    stream << '\n';
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Free>([](const Free *op, IRPrinter* p) {
+    p->do_indent();
+    p->stream << "free " << op->buffer_var;
+    p->stream << '\n';
+});
 
-void IRPrinter::visit(const Realize *op) {
-    do_indent();
-    stream << "realize " << op->func->name() << "(";
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Realize>([](const Realize *op, IRPrinter* p) {
+    p->do_indent();
+    p->stream << "realize " << op->func->name() << "(";
     for (size_t i = 0; i < op->bounds.size(); i++) {
-        stream << "[";
-        print(op->bounds[i]->min);
-        stream << ", ";
-        print(op->bounds[i]->extent);
-        stream << "]";
-        if (i < op->bounds.size() - 1) stream << ", ";
+        p->stream << "[";
+        p->print(op->bounds[i]->min);
+        p->stream << ", ";
+        p->print(op->bounds[i]->extent);
+        p->stream << "]";
+        if (i < op->bounds.size() - 1) p->stream << ", ";
     }
-    stream << ")";
+    p->stream << ")";
     if (!is_one(op->condition)) {
-        stream << " if ";
-        print(op->condition);
+        p->stream << " if ";
+        p->print(op->condition);
     }
-    stream << " {\n";
+    p->stream << " {\n";
 
-    indent += 2;
-    print(op->body);
-    indent -= 2;
+    p->indent += 2;
+    p->print(op->body);
+    p->indent -= 2;
 
-    do_indent();
-    stream << "}\n";
-}
+    p->do_indent();
+    p->stream << "}\n";
+});
 
-void IRPrinter::visit(const Block *op) {
-    print(op->first);
-    if (op->rest.defined()) print(op->rest);
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Block>([](const Block *op, IRPrinter* p) {
+    p->print(op->first);
+    if (op->rest.defined()) p->print(op->rest);
+  });
 
-void IRPrinter::visit(const IfThenElse *op) {
-    do_indent();
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<IfThenElse>([](const IfThenElse *op, IRPrinter* p) {
+    p->do_indent();
     while (1) {
-        stream << "if (" << op->condition << ") {\n";
-        indent += 2;
-        print(op->then_case);
-        indent -= 2;
+        p->stream << "if (" << op->condition << ") {\n";
+        p->indent += 2;
+        p->print(op->then_case);
+        p->indent -= 2;
 
         if (!op->else_case.defined()) {
             break;
         }
 
         if (const IfThenElse *nested_if = op->else_case.as<IfThenElse>()) {
-            do_indent();
-            stream << "} else ";
+            p->do_indent();
+            p->stream << "} else ";
             op = nested_if;
         } else {
-            do_indent();
-            stream << "} else {\n";
-            indent += 2;
-            print(op->else_case);
-            indent -= 2;
+            p->do_indent();
+            p->stream << "} else {\n";
+            p->indent += 2;
+            p->print(op->else_case);
+            p->indent -= 2;
             break;
         }
     }
 
-    do_indent();
-    stream << "}\n";
+    p->do_indent();
+    p->stream << "}\n";
 
-}
+});
 
-void IRPrinter::visit(const Evaluate *op) {
-    do_indent();
-    print(op->value);
-    stream << "\n";
-}
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<Evaluate>([](const Evaluate *op, IRPrinter* p) {
+    p->do_indent();
+    p->print(op->value);
+    p->stream << "\n";
+  });
 
 }}

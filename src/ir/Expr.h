@@ -23,6 +23,7 @@ namespace Internal {
 using IR::Node;
 using IR::NodeRef;
 using IR::Array;
+using tvm::IRNodeRef;
 
 struct Variable;
 class IRVisitor;

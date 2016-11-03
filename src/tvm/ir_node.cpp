@@ -1,8 +1,13 @@
-#include "./ir_node.h"
+/*!
+ *  Copyright (c) 2016 by Contributors
+ *  Implementation of IR Node API
+ * \file ir_node.cpp
+ */
 #include <memory>
 #include <atomic>
 #include <mutex>
 #include <unordered_map>
+#include "./ir_node.h"
 
 namespace tvm {
 

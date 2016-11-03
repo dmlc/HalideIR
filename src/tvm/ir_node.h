@@ -175,6 +175,13 @@ class IRFunctor<R(const IRNodeRef& n, Args...)> {
 #define TVM_ATTRIBUTE_UNUSED
 #endif
 
+/*! \brief helper macro to generate string concat */
+#define TVM_STR_CONCAT_(__x, __y) __x##__y
+#define TVM_STR_CONCAT(__x, __y) TVM_STR_CONCAT_(__x, __y)
+
+#define TVM_REGISTER_VAR_DEF(ClsName)                                 \
+  static TVM_ATTRIBUTE_UNUSED auto & __make_functor ## _ ## ClsName
+
 /*!
  * \brief Useful macro to set IRFunctor dispatch in a global static field.
  *
@@ -216,7 +223,7 @@ class IRFunctor<R(const IRNodeRef& n, Args...)> {
  * \param FField The static function that returns a singleton of IRFunctor.
  */
 #define TVM_STATIC_IR_FUNCTOR(ClsName, FField)                       \
-  static auto& TVM_ATTRIBUTE_UNUSED __make_ ## ClsName ## FField  =  \
+  TVM_STR_CONCAT(TVM_REGISTER_VAR_DEF(ClsName), __COUNTER__)  =      \
                               ClsName::FField()
 
 }  // namespace tvm
