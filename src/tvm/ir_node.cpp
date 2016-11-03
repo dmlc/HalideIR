@@ -1,5 +1,4 @@
 #include "./ir_node.h"
-#include <dmlc/logging.h>
 #include <memory>
 #include <atomic>
 #include <mutex>
