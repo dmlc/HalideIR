@@ -148,7 +148,7 @@ public:
 
     using IRMutator::visit;
 
-    void visit(const Let *let) {
+    void visit(const Let *let, const Expr &e) {
         // Visit the value and add it to the numbering.
         Expr value = mutate(let->value);
 
@@ -161,7 +161,7 @@ public:
         let_substitutions.pop(let->var.get());
 
         // Just return the body. We've removed the Let.
-        return_value(body);
+        expr = body;
     }
 
 };
@@ -312,33 +312,33 @@ class NormalizeVarExprs : public IRMutator {
 
     using IRMutator::visit;
 
-    void visit(const Variable *var) {
+    void visit(const Variable *var, const Expr &e) {
         map<const Variable*, int>::iterator iter = new_var_exprs.find(var);
         if (iter == new_var_exprs.end()) {
-	    return_self();
+          expr = e;
         } else {
-            return_value(replacement_var_exprs[iter->second]);
+          expr = replacement_var_exprs[iter->second];
         }
     }
 
-    void visit(const Let *let) {
+    void visit(const Let *let, const Expr &e) {
         VarExpr new_expr;
         if (counter == replacement_var_exprs.size()) {
-	  // On the first call of normalizer->mutate(e)
-	  // Create the normalized let variable.
-	  new_expr = Variable::make(let->var->type, "t" + std::to_string(counter));
-	  replacement_var_exprs.push_back(new_expr);
-	} else {
-	  // Here only on the second call of normalizer->mutate(e).
-	  // Use the same new_expr for the second expr.
-	  new_expr = replacement_var_exprs[counter];
-	}
-	new_var_exprs[let->var.get()] = counter;
-	counter++;
+          // On the first call of normalizer->mutate(e)
+          // Create the normalized let variable.
+          new_expr = Variable::make(let->var->type, "t" + std::to_string(counter));
+          replacement_var_exprs.push_back(new_expr);
+        } else {
+          // Here only on the second call of normalizer->mutate(e).
+          // Use the same new_expr for the second expr.
+          new_expr = replacement_var_exprs[counter];
+        }
+        new_var_exprs[let->var.get()] = counter;
+        counter++;
 
         Expr value = mutate(let->value);
         Expr body = mutate(let->body);
-        return_value(Let::make(new_expr, value, body));
+        expr = Let::make(new_expr, value, body);
     }
 
 public:

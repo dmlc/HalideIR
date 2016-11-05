@@ -75,12 +75,6 @@ enum class IRNodeType : int {
 
 /** The abstract base classes for a node in the Halide IR. */
 struct IRNode : public tvm::IRNode {
-
-    /** We use the visitor pattern to traverse IR nodes throughout the
-     * compiler, so we have a virtual accept method which accepts
-     * visitors.
-     */
-    virtual void accept(IRVisitor *v) const = 0;
     /** Each IR node subclass should return some unique pointer. We
      * can compare these pointers to do runtime type
      * identification. We don't compile with rtti because that
@@ -99,12 +93,22 @@ struct IRNode : public tvm::IRNode {
 /** A base class for statement nodes. They have no properties or
    methods beyond base IR nodes for now */
 struct BaseStmtNode : public IRNode {
+    /** We use the visitor pattern to traverse IR nodes throughout the
+     * compiler, so we have a virtual accept method which accepts
+     * visitors.
+     */
+    virtual void accept(IRVisitor *v, const Stmt &s) const = 0;  
 };
 
 /** A base class for expression nodes. They all contain their types
  * (e.g. Int(32), Float(32)) */
 struct BaseExprNode : public IRNode {
     Type type;
+    /** We use the visitor pattern to traverse IR nodes throughout the
+     * compiler, so we have a virtual accept method which accepts
+     * visitors.
+     */
+    virtual void accept(IRVisitor *v, const Expr &e) const = 0;    
 };
 
 /** We use the "curiously recurring template pattern" to avoid
@@ -115,7 +119,7 @@ struct BaseExprNode : public IRNode {
    a concrete instantiation of a unique IRNodeType per class. */
 template<typename T>
 struct ExprNode : public BaseExprNode {
-    EXPORT void accept(IRVisitor *v) const;
+    EXPORT void accept(IRVisitor *v, const Expr &e) const;
     IRNodeType type_info() const final {return T::_type_info;}
     const char* type_key() const final {return T::_type_key;}
     ExprNode() {
@@ -128,7 +132,7 @@ struct ExprNode : public BaseExprNode {
 
 template<typename T>
 struct StmtNode : public BaseStmtNode {
-    EXPORT void accept(IRVisitor *v) const;
+    EXPORT void accept(IRVisitor *v, const Stmt &s) const;
     IRNodeType type_info() const final {return T::_type_info;}
     const char* type_key() const final {return T::_type_key;}
     StmtNode() {
@@ -146,12 +150,6 @@ struct IRHandle : public tvm::IRNodeRef {
     IRHandle() {}
     IRHandle(std::shared_ptr<Node> p) : IRNodeRef(p) {}
 
-    /** Dispatch to the correct visitor method for this node. E.g. if
-     * this node is actually an Add node, then this will call
-     * IRVisitor::visit(const Add *) */
-    void accept(IRVisitor *v) const {
-        static_cast<const IRNode*>(node_.get())->accept(v);
-    }
     /** return internal content as IRNode */
     inline const IRNode* get() const {
         return static_cast<const IRNode*>(node_.get());
@@ -190,6 +188,13 @@ struct Expr : public Internal::IRHandle {
 
     /** Make an expression representing a const string (i.e. a StringImm) */
     EXPORT          Expr(const std::string &s);
+
+    /** Dispatch to the correct visitor method for this node. E.g. if
+     * this node is actually an Add node, then this will call
+     * IRVisitor::visit(const Add *) */
+    inline void accept(Internal::IRVisitor *v) const {
+        static_cast<const Internal::BaseExprNode *>(node_.get())->accept(v, *this);
+    }
 
     /** Get the type of this expression node */
     Type type() const {
@@ -285,6 +290,13 @@ enum class ForType : int {
 struct Stmt : public IRHandle {
     Stmt() : IRHandle() {}
     Stmt(std::shared_ptr<IR::Node> n) : IRHandle(n) {}
+
+    /** Dispatch to the correct visitor method for this node. E.g. if
+     * this node is actually an Add node, then this will call
+     * IRVisitor::visit(const Add *) */
+    inline void accept(Internal::IRVisitor *v) const {
+        static_cast<const Internal::BaseStmtNode *>(node_.get())->accept(v, *this);
+    }
 };
 
 

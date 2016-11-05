@@ -446,7 +446,7 @@ VarExpr Variable::make(Type type, std::string name_hint) {
     node->name_hint = name_hint;
     return VarExpr(node);
 }
-
+/*
 template<> void ExprNode<IntImm>::accept(IRVisitor *v) const { v->visit((const IntImm *)this); }
 template<> void ExprNode<UIntImm>::accept(IRVisitor *v) const { v->visit((const UIntImm *)this); }
 template<> void ExprNode<FloatImm>::accept(IRVisitor *v) const { v->visit((const FloatImm *)this); }
@@ -487,7 +487,7 @@ template<> void StmtNode<Realize>::accept(IRVisitor *v) const { v->visit((const 
 template<> void StmtNode<Block>::accept(IRVisitor *v) const { v->visit((const Block *)this); }
 template<> void StmtNode<IfThenElse>::accept(IRVisitor *v) const { v->visit((const IfThenElse *)this); }
 template<> void StmtNode<Evaluate>::accept(IRVisitor *v) const { v->visit((const Evaluate *)this); }
-
+*/
 Call::ConstString Call::debug_to_file = "debug_to_file";
 Call::ConstString Call::shuffle_vector = "shuffle_vector";
 Call::ConstString Call::interleave_vectors = "interleave_vectors";

@@ -29,40 +29,40 @@ public:
 
     using IRMutator::visit;
 
-    void visit(const Variable *v) {
+    void visit(const Variable *v, const Expr &e) {
         Expr r = find_replacement(v);
         if (r.defined()) {
-            return_value(r);
+            expr = r;
         } else {
-            return_self();
+            expr = e;
         }
     }
 
-    void visit(const Let *op) {
+    void visit(const Let *op, const Expr &e) {
         Expr new_value = mutate(op->value);
         Expr new_body = mutate(op->body);
 
         if (new_value.same_as(op->value) &&
             new_body.same_as(op->body)) {
-            return_self();
+          expr = e;
         } else {
-            return_value(Let::make(op->var, new_value, new_body));
+          expr = Let::make(op->var, new_value, new_body);
         }
     }
 
-    void visit(const LetStmt *op) {
+    void visit(const LetStmt *op, const Stmt &s) {
         Expr new_value = mutate(op->value);
         Stmt new_body = mutate(op->body);
 
         if (new_value.same_as(op->value) &&
             new_body.same_as(op->body)) {
-            return_self();
+          stmt = s;
         } else {
-            return_value(LetStmt::make(op->var, new_value, new_body));
+          stmt = LetStmt::make(op->var, new_value, new_body);
         }
     }
 
-    void visit(const For *op) {
+    void visit(const For *op, const Stmt &s) {
         Expr new_min = mutate(op->min);
         Expr new_extent = mutate(op->extent);
         Stmt new_body = mutate(op->body);
@@ -70,9 +70,9 @@ public:
         if (new_min.same_as(op->min) &&
             new_extent.same_as(op->extent) &&
             new_body.same_as(op->body)) {
-            return_self();
+          stmt = s;
         } else {
-            return_value(For::make(op->loop_var, new_min, new_extent, op->for_type, op->device_api, new_body));
+          stmt = For::make(op->loop_var, new_min, new_extent, op->for_type, op->device_api, new_body);
         }
     }
 
@@ -139,11 +139,11 @@ class GraphSubstitute : public IRGraphMutator {
 
     using IRGraphMutator::visit;
 
-    void visit(const Variable *op) {
+    void visit(const Variable *op, const Expr &e) {
         if (op == var) {
-            return_value(value);
+          expr = value;
         } else {
-            return_self();
+          expr = e;
         }
     }
 
@@ -188,10 +188,10 @@ class SubstituteInAllLets : public IRGraphMutator {
 
     using IRGraphMutator::visit;
 
-    void visit(const Let *op) {
+    void visit(const Let *op, Expr &) {
         Expr value = mutate(op->value);
         Expr body = mutate(op->body);
-        return_value(graph_substitute(op->var, value, body));
+        expr = graph_substitute(op->var, value, body);
     }
 };
 

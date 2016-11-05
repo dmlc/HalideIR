@@ -43,3 +43,5 @@ Goal: base, ir, pass are invariant of LLVM, codegen can depend on LLVM
     range(begin, end) in both c++ and python
 - Add a more flexible RTTI and dynamic dispatch support, see src/tvm/ir_node.h
   - IRFunctor allows plugin of new IR Node more easily, without chaning interface
+- Remove Scope in Substitute to check name conflicts because we use variable pointer matching
+- Add Expr&/Stmt& to visit interface in the IRVisitor and IRMutator
