@@ -222,7 +222,7 @@ IRComparer::CmpResult IRComparer::compare_ptrs(const Node* a, const Node* b) {
     if (result != Equal) return result;
     if (a < b) {
       result = LessThan;
-    } else {
+    } else if (a > b) {
       result = GreaterThan;
     }
     return result;
