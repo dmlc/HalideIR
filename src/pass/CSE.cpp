@@ -61,7 +61,6 @@ bool should_extract(Expr e) {
     return true;
 
 }
-
 // A global-value-numbering of expressions. Returns canonical form of
 // the Expr and writes out a global value numbering as a side-effect.
 class GVN : public IRMutator {
@@ -242,7 +241,7 @@ Expr common_subexpression_elimination(Expr e) {
     debug(4) << "Canonical form without lets " << e << "\n";
 
     // Figure out which ones we'll pull out as lets and variables.
-    vector<pair<string, Expr>> lets;
+    vector<pair<VarExpr, Expr>> lets;
     vector<Expr> new_version(gvn.entries.size());
     map<Expr, Expr, ExprCompare> replacements;
     for (size_t i = 0; i < gvn.entries.size(); i++) {
@@ -250,9 +249,10 @@ Expr common_subexpression_elimination(Expr e) {
         Expr old = e.expr;
         if (e.use_count > 1) {
             string name = unique_name('t');
-            lets.push_back(make_pair(name, e.expr));
+	    VarExpr var = Variable::make(e.expr.type(), name);
+            lets.push_back(std::make_pair(var, e.expr));
             // Point references to this expr to the variable instead.
-            replacements[e.expr] = Variable::make(e.expr.type(), name);
+            replacements[e.expr] = var;
         }
         debug(4) << i << ": " << e.expr << ", " << e.use_count << "\n";
     }
@@ -324,14 +324,16 @@ class NormalizeVarExprs : public IRMutator {
     void visit(const Let *let) {
         VarExpr new_expr;
         if (counter == replacement_var_exprs.size()) {
-	  new_expr = Variable::make(let->var->type, let->var->name_hint);
+	  // On the first call of normalizer->mutate(e)
+	  // Create the normalized let variable.
+	  new_expr = Variable::make(let->var->type, "t" + std::to_string(counter));
 	  replacement_var_exprs.push_back(new_expr);
-	  new_var_exprs[let->var.get()] = counter;
 	} else {
 	  // Here only on the second call of normalizer->mutate(e).
 	  // Use the same new_expr for the second expr.
 	  new_expr = replacement_var_exprs[counter];
 	}
+	new_var_exprs[let->var.get()] = counter;
 	counter++;
 
         Expr value = mutate(let->value);
@@ -351,6 +353,7 @@ public:
     // expected_expr = normalizer->mutate(expected_expr);
     void reset_counter() {
       counter = 0;
+      new_var_exprs.clear();
     }
 };
 
@@ -368,11 +371,10 @@ void check(Expr in, Expr correct) {
 
 // Construct a nested block of lets. Variables of the form "tn" refer
 // to expr n in the vector.
-Expr ssa_block(vector<Expr> exprs) {
+Expr ssa_block(vector<Expr> exprs, const VarExpr t[]) {
     Expr e = exprs.back();
     for (size_t i = exprs.size() - 1; i > 0; i--) {
-        string name = "t" + std::to_string(i-1);
-        e = Let::make(name, exprs[i-1], e);
+	e = Let::make(t[i-1], exprs[i-1], e);
     }
     return e;
 }
@@ -389,7 +391,7 @@ void cse_test() {
     Expr e, correct;
 
     // This is fine as-is.
-    e = ssa_block({sin(x), tf[0]*tf[0]});
+    e = ssa_block({sin(x), tf[0]*tf[0]}, tf);
     check(e, e);
 
     // Test a simple case.
@@ -398,7 +400,8 @@ void cse_test() {
     correct = ssa_block({x*x,                  // x*x
                          t[0] + x,             // x*x + x
                          t[1] * t[1] + t[0],   // (x*x + x)*(x*x + x) + x*x
-                         t[2] + t[2]});
+                         t[2] + t[2]},
+			 t);
     check(e, correct);
 
     // Check for idempotence (also checks a case with lets)
@@ -410,30 +413,36 @@ void cse_test() {
                    t[0] / t[1],
                    t[1] / t[1],
                    t[2] % t[3],
-                   (t[4] + x*x) + x*x});
+                   (t[4] + x*x) + x*x},
+		   t);
     correct = ssa_block({x*x,
                          t[0] / t[0],
-                         (t[1] % t[1] + t[0]) + t[0]});
+                         (t[1] % t[1] + t[0]) + t[0]},
+			 t);
     check(e, correct);
 
     // Check a case with nested lets with shared subexpressions
     // between the lets, and repeated names.
     Expr e1 = ssa_block({x*x,                  // a = x*x
                          t[0] + x,             // b = a + x
-                         t[1] * t[1] * t[0]}); // c = b * b * a
+                         t[1] * t[1] * t[0]},  // c = b * b * a
+			 t);
     Expr e2 = ssa_block({x*x,                  // a again
                          t[0] - x,             // d = a - x
-                         t[1] * t[1] * t[0]}); // e = d * d * a
+                         t[1] * t[1] * t[0]},  // e = d * d * a
+			 t);
     e = ssa_block({e1 + x*x,                   // f = c + a
                    e1 + e2,                    // g = c + e
-                   t[0] + t[0] * t[1]});       // h = f + f * g
+                   t[0] + t[0] * t[1]},        // h = f + f * g
+		   t);
 
     correct = ssa_block({x*x,                // t0 = a = x*x
                          t[0] + x,           // t1 = b = a + x     = t0 + x
                          t[1] * t[1] * t[0], // t2 = c = b * b * a = t1 * t1 * t0
                          t[2] + t[0],        // t3 = f = c + a     = t2 + t0
                          t[0] - x,           // t4 = d = a - x     = t0 - x
-                         t[3] + t[3] * (t[2] + t[4] * t[4] * t[0])}); // h (with g substituted in)
+                         t[3] + t[3] * (t[2] + t[4] * t[4] * t[0])}, // h (with g substituted in)
+			 t);
     check(e, correct);
 
     // Test it scales OK.
