@@ -120,6 +120,15 @@ class IRFunctor<R(const IRNodeRef& n, Args...)> {
   /*! \brief the result type of this functor */
   using result_type = R;
   /*!
+   * \brief Whether the functor can dispatch the corresponding IRNode
+   * \param n The node to be dispatched
+   * \return Whether dispatching function is registered for n's type.
+   */
+  inline bool can_dispatch(const IRNodeRef& n) const {
+    uint32_t type_index = n.type_index();
+    return type_index < func_.size() && func_[type_index] != nullptr;
+  }
+  /*!
    * \brief invoke the functor , dispatch on type of n
    * \param n The IRNode argument
    * \param args The additional arguments

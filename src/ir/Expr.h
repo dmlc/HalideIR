@@ -97,7 +97,7 @@ struct BaseStmtNode : public IRNode {
      * compiler, so we have a virtual accept method which accepts
      * visitors.
      */
-    virtual void accept(IRVisitor *v, const Stmt &s) const = 0;  
+    virtual void accept(IRVisitor *v, const Stmt &s) const = 0;
 };
 
 /** A base class for expression nodes. They all contain their types
@@ -108,7 +108,7 @@ struct BaseExprNode : public IRNode {
      * compiler, so we have a virtual accept method which accepts
      * visitors.
      */
-    virtual void accept(IRVisitor *v, const Expr &e) const = 0;    
+    virtual void accept(IRVisitor *v, const Expr &e) const = 0;
 };
 
 /** We use the "curiously recurring template pattern" to avoid
