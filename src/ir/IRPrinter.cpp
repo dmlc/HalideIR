@@ -418,7 +418,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 .set_dispatch<ProducerConsumer>([](const ProducerConsumer *op, IRPrinter* p) {
     if (op->is_producer) {
         p->do_indent();
-        p->stream << "produce " << op->func->name() << " {\n";
+        p->stream << "produce " << op->func->func_name() << " {\n";
         p->indent += 2;
         p->print(op->body);
         p->indent -= 2;
@@ -461,7 +461,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 .set_dispatch<Provide>([](const Provide *op, IRPrinter* p) {
     p->do_indent();
-    p->stream << op->func->name() << "(";
+    p->stream << op->func->func_name() << "(";
     for (size_t i = 0; i < op->args.size(); i++) {
         p->print(op->args[i]);
         if (i < op->args.size() - 1) p->stream << ", ";
@@ -516,7 +516,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 .set_dispatch<Realize>([](const Realize *op, IRPrinter* p) {
     p->do_indent();
-    p->stream << "realize " << op->func->name() << "(";
+    p->stream << "realize " << op->func->func_name() << "(";
     for (size_t i = 0; i < op->bounds.size(); i++) {
         p->stream << "[";
         p->print(op->bounds[i]->min);
