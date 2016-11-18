@@ -37,7 +37,7 @@ class FunctionBaseNode : public Node {
   /*! \return the name of the function */
   virtual const std::string& func_name() const = 0;
   /*! \return the number of outputs of this function */
-  virtual int outputs() const;
+  virtual int outputs() const = 0;
 };
 
 // implements of inline functions
