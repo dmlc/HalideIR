@@ -122,11 +122,9 @@ struct ExprNode : public BaseExprNode {
     EXPORT void accept(IRVisitor *v, const Expr &e) const;
     IRNodeType type_info() const final {return T::_type_info;}
     const char* type_key() const final {return T::_type_key;}
-    ExprNode() {
-      static uint32_t type_index = TypeKey2Index(T::_type_key);
-      // type index for each node is initialized in here.
-      // used by IRFunctor
-      type_index_ = type_index;
+    const uint32_t type_index() const final {
+      static uint32_t tidx = TypeKey2Index(T::_type_key);
+      return tidx;
     }
 };
 
@@ -135,11 +133,9 @@ struct StmtNode : public BaseStmtNode {
     EXPORT void accept(IRVisitor *v, const Stmt &s) const;
     IRNodeType type_info() const final {return T::_type_info;}
     const char* type_key() const final {return T::_type_key;}
-    StmtNode() {
-      static uint32_t type_index = TypeKey2Index(T::_type_key);
-      // type index for each node is initialized in here.
-      // used by IRFunctor
-      type_index_ = type_index;
+    const uint32_t type_index() const final {
+      static uint32_t tidx = TypeKey2Index(T::_type_key);
+      return tidx;
     }
 };
 

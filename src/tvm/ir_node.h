@@ -37,15 +37,8 @@ class IRNode : public Node {
    * \return the corresponding type key.
    */
   static const char* TypeIndex2Key(uint32_t index);
-
- protected:
-  friend class IRNodeRef;
-  /*!
-   * \brief runtime dependent type index that
-   *  is unique to each IRNode type.
-   *  0 means unknown type index.
-   */
-  uint32_t type_index_{0};
+  /*! \return the type index of the node*/
+  virtual const uint32_t type_index() const = 0;
 };
 
 /*! \brief Base class of IRNode reference class */
@@ -53,7 +46,9 @@ class IRNodeRef : public NodeRef {
  public:
   /*! \return the internal type index of IRNode */
   inline uint32_t type_index() const {
-    return static_cast<const IRNode*>(node_.get())->type_index_;
+    internal_assert(node_.get() != nullptr)
+        << "null type";
+    return static_cast<const IRNode*>(node_.get())->type_index();
   }
   /*!
    * \brief Downcast this ir node to its actual type (e.g. Add, or
@@ -69,7 +64,7 @@ class IRNodeRef : public NodeRef {
     const IRNode* ptr = static_cast<const IRNode*>(node_.get());
     // use static field so query only happens once.
     static uint32_t type_id = IRNode::TypeKey2Index(T::_type_key);
-    if (ptr && ptr->type_index_ == type_id) {
+    if (ptr && ptr->type_index() == type_id) {
       return static_cast<const T*>(ptr);
     }
     return nullptr;
