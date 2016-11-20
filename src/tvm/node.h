@@ -119,13 +119,16 @@ class NodeRef {
    * \param node The node pointer to be reseted.
    */
   inline void reset(std::shared_ptr<Node> node);
+  /*! \brief default constructor */
+  NodeRef() = default;
+  /*! \brief type indicate the container type */
+  using ContainerType = Node;
 
  protected:
   template<typename T, typename>
   friend class Array;
   friend class Node;
   friend class APIVariantValue;
-  NodeRef() = default;
   explicit NodeRef(std::shared_ptr<Node> node) : node_(node) {}
   /*! \brief the internal node object, do not touch  */
   std::shared_ptr<Node> node_;

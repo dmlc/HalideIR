@@ -370,13 +370,23 @@ struct LetStmt : public StmtNode<LetStmt> {
     VarExpr var;
     Expr value;
     Stmt body;
+    // optional, indicate this var is an attribute of certain node
+    // It can be VarExpr, or FunctionRef, can be None
+    // Use attr_of_node.get() as a unique identitier of the target.
+    NodeRef attr_of_node;
+    // indicate which type of attribute it is, could be
+    // {"min", "stride", "extent"}
+    std::string attr_type_key;
 
-    EXPORT static Stmt make(VarExpr var, Expr value, Stmt body);
+    EXPORT static Stmt make(VarExpr var, Expr value, Stmt body,
+                            NodeRef attr_of_node = NodeRef(), std::string attr_type_key = "");
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("var", &var);
         v->Visit("value", &value);
         v->Visit("body", &body);
+        v->Visit("attr_of_node", &attr_of_node);
+        v->Visit("attr_type_key", &attr_type_key);
     }
     static const IRNodeType _type_info = IRNodeType::LetStmt;
     static constexpr const char* _type_key = "LetStmt";

@@ -196,6 +196,8 @@ struct Expr : public Internal::IRHandle {
     Type type() const {
       return (static_cast<const Internal::BaseExprNode *>(node_.get()))->type;
     }
+    /*! \brief type indicate the container type */
+    using ContainerType = Internal::BaseExprNode;
 };
 
 /** This lets you use an Expr as a key in a map of the form
@@ -293,6 +295,8 @@ struct Stmt : public IRHandle {
     inline void accept(Internal::IRVisitor *v) const {
         static_cast<const Internal::BaseStmtNode *>(node_.get())->accept(v, *this);
     }
+    /*! \brief type indicate the container type */
+    using ContainerType = Internal::BaseStmtNode;
 };
 
 
