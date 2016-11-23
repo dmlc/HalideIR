@@ -1,5 +1,5 @@
 #include "ModulusRemainder.h"
-#include "Divmod.h"
+#include "Simplify.h"
 #include "ir/IROperator.h"
 #include "ir/IRPrinter.h"
 #include "ir/IR.h"

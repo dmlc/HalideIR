@@ -1,11 +1,43 @@
-#ifndef HALIDE_DIVMOD_H
-#define HALIDE_DIVMOD_H
+#ifndef HALIDE_SIMPLIFY_H
+#define HALIDE_SIMPLIFY_H
+
+/** \file
+ * Methods for simplifying halide statements and expressions
+ */
 
 #include <cmath>
 
+#include "ir/IR.h"
+#include "Bounds.h"
+#include "ModulusRemainder.h"
+
 namespace Halide {
 namespace Internal {
-    
+
+/** Perform a a wide range of simplifications to expressions and
+ * statements, including constant folding, substituting in trivial
+ * values, arithmetic rearranging, etc. Simplifies across let
+ * statements, so must not be called on stmts with dangling or
+ * repeated variable names.
+ */
+// @{
+EXPORT Stmt simplify(Stmt, bool simplify_lets = true,
+                     const Scope<Interval> &bounds = Scope<Interval>::empty_scope(),
+                     const Scope<ModulusRemainder> &alignment = Scope<ModulusRemainder>::empty_scope());
+EXPORT Expr simplify(Expr, bool simplify_lets = true,
+                     const Scope<Interval> &bounds = Scope<Interval>::empty_scope(),
+                     const Scope<ModulusRemainder> &alignment = Scope<ModulusRemainder>::empty_scope());
+// @}
+
+/** A common use of the simplifier is to prove boolean expressions are
+ * true at compile time. Equivalent to is_one(simplify(e)) */
+EXPORT bool can_prove(Expr e);
+
+/** Simplify expressions found in a statement, but don't simplify
+ * across different statements. This is safe to perform at an earlier
+ * stage in lowering than full simplification of a stmt. */
+EXPORT Stmt simplify_exprs(Stmt);
+
 /** Implementations of division and mod that are specific to Halide.
  * Use these implementations; do not use native C division or mod to
  * simplify Halide expressions. Halide division and modulo satisify
@@ -62,6 +94,9 @@ template<> inline float div_imp<float>(float a, float b) {
 template<> inline double div_imp<double>(double a, double b) {
     return a/b;
 }
+
+
+EXPORT void simplify_test();
 
 }
 }

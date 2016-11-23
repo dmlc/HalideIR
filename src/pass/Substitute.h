@@ -21,6 +21,14 @@ EXPORT Expr substitute(const Variable* var, Expr replacement, Expr expr);
  * expression within stmt. */
 EXPORT Stmt substitute(const Variable* var, Expr replacement, Stmt stmt);
 
+EXPORT inline Expr substitute(const VarExpr& var, Expr replacement, Expr expr) {
+  return substitute(var.get(), replacement, expr);
+}
+
+EXPORT inline Stmt substitute(const VarExpr& var, Expr replacement, Stmt stmt) {
+  return substitute(var.get(), replacement, stmt);
+}
+
 /** Substitute variables with pointers in the map. */
 // @{
 EXPORT Expr substitute(const std::map<const Variable*, Expr> &replacements, Expr expr);
@@ -36,8 +44,8 @@ EXPORT Stmt substitute(Expr find, Expr replacement, Stmt stmt);
 /** Substitutions where the IR may be a general graph (and not just a
  * DAG). */
 // @{
-Expr graph_substitute(const Variable* name, Expr replacement, Expr expr);
-Stmt graph_substitute(const Variable* name, Expr replacement, Stmt stmt);
+Expr graph_substitute(const Variable* var, Expr replacement, Expr expr);
+Stmt graph_substitute(const Variable* var, Expr replacement, Stmt stmt);
 Expr graph_substitute(Expr find, Expr replacement, Expr expr);
 Stmt graph_substitute(Expr find, Expr replacement, Stmt stmt);
 // @}
