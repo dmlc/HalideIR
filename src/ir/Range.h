@@ -48,13 +48,14 @@ class RangeNode : public Node {
   /*! \brief constructor */
   RangeNode() {}
   RangeNode(Expr min, Expr extent) : min(min), extent(extent) {}
-  const char* type_key() const final {
-    return "Range";
-  }
+
   void VisitAttrs(IR::AttrVisitor* v) final {
     v->Visit("min", &min);
     v->Visit("extent", &extent);
   }
+
+  static constexpr const char* _type_key = "Range";
+  TVM_DECLARE_NODE_TYPE_INFO(RangeNode);
 };
 
 // implements of inline functions

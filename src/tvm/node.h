@@ -62,12 +62,25 @@ class Node {
    * \param visitor The visitor
    */
   virtual void VisitAttrs(AttrVisitor* visitor) {}
+  /*! \return the type index of the node*/
+  virtual const uint32_t type_index() const = 0;
   /*!
-   * \tparam NodeType the type to be checked.
-   *  Relies on RTTI
-   * \return whether the stored type is node type
+   * \brief get a runtime unique type index given a type key
+   * \param type_key Type key of a type.
+   * \return the corresponding type index.
    */
-  template<typename TNode>
+  static uint32_t TypeKey2Index(const char* type_key);
+  /*!
+   * \brief get type key from type index.
+   * \param index The type index
+   * \return the corresponding type key.
+   */
+  static const char* TypeIndex2Key(uint32_t index);
+  /*!
+   * \return whether the node is of type T
+   * \tparam The type to be checked.
+   */
+  template<typename T>
   inline bool is_type() const;
 
   // node ref can see this
@@ -78,16 +91,8 @@ class Node {
 /*! \brief base class of all node reference object */
 class NodeRef {
  public:
-  /*!
-   * \return typed pointer of the node
-   * \tparam TNode the type of the node.
-   */
-  template<typename TNode>
-  inline const TNode* Get() const;
-  /*! \return the internal node pointer */
-  inline const Node* get() const;
-  /*! \return whether the expression is null */
-  inline bool defined() const;
+  /*! \brief type indicate the container type */
+  using ContainerType = Node;
   /*!
    * \brief Comparator
    * \param other Another node ref.
@@ -114,19 +119,33 @@ class NodeRef {
   inline bool operator!=(const NodeRef& other) const;
   /*! \return the hash function for NodeRef */
   inline size_t hash() const;
+  /*! \return whether the expression is null */
+  inline bool defined() const;
+  /*! \return the internal type index of IRNode */
+  inline uint32_t type_index() const;
+  /*! \return the internal node pointer */
+  inline const Node* get() const;
   /*!
-   * \brief reset the internal node pointer
-   * \param node The node pointer to be reseted.
+   * \brief Downcast this ir node to its actual type (e.g. Add, or
+   * Select). This returns nullptr if the node is not of the requested
+   * type. Example usage:
+   *
+   * if (const Add *add = node->as<Add>()) {
+   *   // This is an add node
+   * }
+   * \tparam T the target type, must be subtype of IRNode
    */
-  inline void reset(std::shared_ptr<Node> node);
+  template<typename T>
+  inline const T *as() const;
+
   /*! \brief default constructor */
   NodeRef() = default;
-  /*! \brief type indicate the container type */
-  using ContainerType = Node;
 
  protected:
-  template<typename T, typename>
+  template<typename, typename>
   friend class Array;
+  template<typename>
+  friend class IRFunctor;
   friend class Node;
   friend class APIVariantValue;
   explicit NodeRef(std::shared_ptr<Node> node) : node_(node) {}
@@ -134,21 +153,24 @@ class NodeRef {
   std::shared_ptr<Node> node_;
 };
 
+/*!
+ * \brief helper macro to declare type information in a node
+ */
+#define TVM_DECLARE_NODE_TYPE_INFO(TypeName)                   \
+  const char* type_key() const final {                         \
+    return TypeName::_type_key;                                \
+  }                                                            \
+  const uint32_t type_index() const final {                    \
+    static uint32_t tidx = TypeKey2Index(TypeName::_type_key); \
+    return tidx;                                               \
+  }
 
 // implementations of inline functions after this
-template<typename TNode>
+template<typename T>
 inline bool Node::is_type() const {
-  const std::type_info& tinfo = typeid(*this);
-  if (&typeid(TNode) == &tinfo) return true;
-  return typeid(TNode) == tinfo;
-}
-
-template<typename TNode>
-inline const TNode* NodeRef::Get() const {
-  CHECK(node_->is_type<TNode>())
-      << " type inconsistent, expected " << typeid(TNode).name()
-      << " given " << typeid(*this).name();
-  return static_cast<const TNode*>(node_.get());
+  // use static field so query only happens once.
+  static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
+  return type_id == this->type_index();
 }
 
 inline const Node* NodeRef::get() const {
@@ -179,8 +201,19 @@ inline size_t NodeRef::hash() const {
   return std::hash<Node*>()(node_.get());
 }
 
-inline void NodeRef::reset(std::shared_ptr<Node> node) {
-  node_ = node;
+inline uint32_t NodeRef::type_index() const {
+  internal_assert(node_.get() != nullptr)
+      << "null type";
+  return get()->type_index();
+}
+
+template<typename T>
+inline const T* NodeRef::as() const {
+  const Node* ptr = static_cast<const Node*>(get());
+  if (ptr && ptr->is_type<T>()) {
+    return static_cast<const T*>(ptr);
+  }
+  return nullptr;
 }
 
 }  // namespace tvm

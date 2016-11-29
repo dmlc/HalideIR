@@ -7,7 +7,7 @@
 #include <atomic>
 #include <mutex>
 #include <unordered_map>
-#include "./ir_node.h"
+#include "./node.h"
 
 namespace tvm {
 
@@ -29,7 +29,7 @@ struct TypeManager {
 }  // namespace
 
 // this is slow, usually caller always hold the result in a static variable.
-uint32_t IRNode::TypeKey2Index(const char* key) {
+uint32_t Node::TypeKey2Index(const char* key) {
   TypeManager *t = TypeManager::Global();
   std::lock_guard<std::mutex>(t->mutex);
   std::string skey = key;
@@ -43,7 +43,7 @@ uint32_t IRNode::TypeKey2Index(const char* key) {
   return tid;
 }
 
-const char* IRNode::TypeIndex2Key(uint32_t index) {
+const char* Node::TypeIndex2Key(uint32_t index) {
   TypeManager *t = TypeManager::Global();
   std::lock_guard<std::mutex>(t->mutex);
   internal_assert(index != 0);

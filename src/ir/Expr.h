@@ -14,7 +14,7 @@
 #include "base/Type.h"
 #include "base/Util.h"
 #include "tvm/node.h"
-#include "tvm/ir_node.h"
+#include "tvm/ir_functor.h"
 #include "tvm/array.h"
 
 namespace Halide {
@@ -23,7 +23,6 @@ namespace Internal {
 using IR::Node;
 using IR::NodeRef;
 using IR::Array;
-using tvm::IRNodeRef;
 
 struct Variable;
 class IRVisitor;
@@ -74,7 +73,7 @@ enum class IRNodeType : int {
 };
 
 /** The abstract base classes for a node in the Halide IR. */
-struct IRNode : public tvm::IRNode {
+struct IRNode : public Node {
     /** Each IR node subclass should return some unique pointer. We
      * can compare these pointers to do runtime type
      * identification. We don't compile with rtti because that
@@ -121,30 +120,24 @@ template<typename T>
 struct ExprNode : public BaseExprNode {
     EXPORT void accept(IRVisitor *v, const Expr &e) const;
     IRNodeType type_info() const final {return T::_type_info;}
-    const char* type_key() const final {return T::_type_key;}
-    const uint32_t type_index() const final {
-      static uint32_t tidx = TypeKey2Index(T::_type_key);
-      return tidx;
-    }
+
+    TVM_DECLARE_NODE_TYPE_INFO(T);
 };
 
 template<typename T>
 struct StmtNode : public BaseStmtNode {
     EXPORT void accept(IRVisitor *v, const Stmt &s) const;
     IRNodeType type_info() const final {return T::_type_info;}
-    const char* type_key() const final {return T::_type_key;}
-    const uint32_t type_index() const final {
-      static uint32_t tidx = TypeKey2Index(T::_type_key);
-      return tidx;
-    }
+
+    TVM_DECLARE_NODE_TYPE_INFO(T);
 };
 
 /** IR nodes are passed around opaque handles to them. This is a
    base class for those handles. It manages the reference count,
    and dispatches visitors. */
-struct IRHandle : public tvm::IRNodeRef {
+struct IRHandle : public NodeRef {
     IRHandle() {}
-    IRHandle(std::shared_ptr<Node> p) : IRNodeRef(p) {}
+    IRHandle(std::shared_ptr<Node> p) : NodeRef(p) {}
 
     /** return internal content as IRNode */
     inline const IRNode* get() const {

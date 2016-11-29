@@ -75,7 +75,7 @@ public:
     /** Emit spaces according to the current indentation level */
     void do_indent();
 
-    using FType = tvm::IRFunctor<void(const IRNodeRef&, IRPrinter *)>;
+    using FType = tvm::IRFunctor<void(const NodeRef&, IRPrinter *)>;
 
     EXPORT static FType& vtable();
 };

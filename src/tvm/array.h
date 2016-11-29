@@ -19,12 +19,13 @@ class ArrayNode : public Node {
  public:
   /*! \brief the data content */
   std::vector<std::shared_ptr<Node> > data;
-  const char* type_key() const override {
-    return "Array";
-  }
+
   void VisitAttrs(AttrVisitor* visitor) final {
      // Visitor to array have no effect.
   }
+
+  static constexpr const char* _type_key = "Array";
+  TVM_DECLARE_NODE_TYPE_INFO(ArrayNode);
 };
 
 /*!
