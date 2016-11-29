@@ -158,9 +158,9 @@ public:
 
     /** Iterate through the scope. Does not capture any containing scope. */
     class const_iterator {
-        typename std::map<Variable*, SmallStack<T>>::const_iterator iter;
+        typename std::map<const Variable*, SmallStack<T>>::const_iterator iter;
     public:
-        explicit const_iterator(const typename std::map<Variable*, SmallStack<T>>::const_iterator &i) :
+        explicit const_iterator(const typename std::map<const Variable*, SmallStack<T>>::const_iterator &i) :
             iter(i) {
         }
 
