@@ -323,7 +323,7 @@ class NormalizeVarExprs : public IRMutator {
 
     void visit(const Let *let, const Expr &e) {
         VarExpr new_expr;
-        if (counter == replacement_var_exprs.size()) {
+        if (static_cast<size_t>(counter) == replacement_var_exprs.size()) {
           // On the first call of normalizer->mutate(e)
           // Create the normalized let variable.
           new_expr = Variable::make(let->var->type, "t" + std::to_string(counter));
@@ -348,7 +348,7 @@ public:
     // For example, in tests, we want to normalize/replace let variables
     // of the result expr from a cse pass and the expected expr.
     // We would call
-    // result_expr = normalizer->mutate(result_expr); 
+    // result_expr = normalizer->mutate(result_expr);
     // normalizer->reset_counter();
     // expected_expr = normalizer->mutate(expected_expr);
     void reset_counter() {

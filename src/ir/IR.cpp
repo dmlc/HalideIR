@@ -204,8 +204,7 @@ Expr Let::make(VarExpr var, Expr value, Expr body) {
     return Expr(node);
 }
 
-Stmt LetStmt::make(VarExpr var, Expr value, Stmt body,
-                   NodeRef attr_of_node, std::string attr_type_key) {
+Stmt LetStmt::make(VarExpr var, Expr value, Stmt body) {
     internal_assert(value.defined()) << "Let of undefined\n";
     internal_assert(body.defined()) << "Let of undefined\n";
     internal_assert(value.type() == var.type()) << "Let var mismatch\n";
@@ -213,8 +212,6 @@ Stmt LetStmt::make(VarExpr var, Expr value, Stmt body,
     node->var = var;
     node->value = value;
     node->body = body;
-    node->attr_of_node = attr_of_node;
-    node->attr_type_key = attr_type_key;
     return Stmt(node);
 }
 

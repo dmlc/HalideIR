@@ -399,11 +399,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
     p->do_indent();
     p->stream << "let " << op->var << " = ";
     p->print(op->value);
-    if (op->attr_type_key.length() != 0) {
-      p->stream << " [" << op->attr_type_key << ']';
-    }
     p->stream << '\n';
-
     p->print(op->body);
 });
 
