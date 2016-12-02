@@ -137,19 +137,28 @@ class Array : public NodeRef {
     if (node_.get() == nullptr) return 0;
     return static_cast<const ArrayNode*>(node_.get())->data.size();
   }
-  /*! \brief copy on write semantics */
-  inline void CopyOnWrite() {
-    if (node_.get() == nullptr || node_.unique()) return;
-    node_ = std::make_shared<ArrayNode>(
-        *static_cast<const ArrayNode*>(node_.get()));
+  /*!
+   * \brief copy on write semantics
+   *  Do nothing if current handle is the unique copy of the array.
+   *  Otherwise make a new copy of the array to ensure the current handle
+   *  hold a unique copy.
+   *
+   * \return Handle to the internal node container(which ganrantees to be unique)
+   */
+  inline ArrayNode* CopyOnWrite() {
+    if (node_.get() == nullptr || !node_.unique())  {
+      node_ = std::make_shared<ArrayNode>(
+          *static_cast<const ArrayNode*>(node_.get()));
+    }
+    return static_cast<ArrayNode*>(node_.get());
   }
   /*!
    * \brief push a new item to the back of the list
    * \param item The item to be pushed.
    */
   inline void push_back(const T& item) {
-    this->CopyOnWrite();
-    static_cast<ArrayNode*>(node_.get())->data.push_back(item.node_);
+    ArrayNode* n = this->CopyOnWrite();
+    n->data.push_back(item.node_);
   }
   /*!
    * \brief set i-th element of the array.
@@ -157,8 +166,8 @@ class Array : public NodeRef {
    * \param value The value to be setted.
    */
   inline void Set(size_t i, const T& value) {
-    this->CopyOnWrite();
-    static_cast<ArrayNode*>(node_.get())->data[i] = value.node_;
+    ArrayNode* n = this->CopyOnWrite();
+    n->data[i] = value.node_;
   }
   /*! \return whether array is empty */
   inline bool empty() const {
@@ -166,6 +175,7 @@ class Array : public NodeRef {
   }
   /*! \brief specify container node */
   using ContainerType = ArrayNode;
+
   friend std::ostream& operator<<(std::ostream &os, const Array<T>& r) {  // NOLINT(*)
     for (size_t i = 0; i < r.size(); ++i) {
       if (i == 0) {
