@@ -140,6 +140,7 @@ class NodeRef {
 
   /*! \brief default constructor */
   NodeRef() = default;
+  explicit NodeRef(std::shared_ptr<Node> node) : node_(node) {}
 
  protected:
   template<typename, typename>
@@ -148,7 +149,6 @@ class NodeRef {
   friend class IRFunctor;
   friend class Node;
   friend class APIVariantValue;
-  explicit NodeRef(std::shared_ptr<Node> node) : node_(node) {}
   /*! \brief the internal node object, do not touch  */
   std::shared_ptr<Node> node_;
 };
