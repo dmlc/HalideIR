@@ -109,12 +109,7 @@ IRPrinter::IRPrinter(ostream &s) : stream(s), indent(0) {
     s.setf(std::ios::fixed, std::ios::floatfield);
 }
 
-void IRPrinter::print(Expr ir) {
-    static const FType& f = vtable();
-    f(ir, this);
-}
-
-void IRPrinter::print(Stmt ir) {
+void IRPrinter::print(const NodeRef& ir) {
     static const FType& f = vtable();
     f(ir, this);
 }

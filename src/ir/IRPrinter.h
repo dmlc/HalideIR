@@ -58,10 +58,7 @@ public:
     EXPORT IRPrinter(std::ostream &);
 
     /** emit an expression on the output stream */
-    EXPORT void print(Expr);
-
-    /** emit a statement on the output stream */
-    EXPORT void print(Stmt);
+    EXPORT void print(const NodeRef&);
 
     EXPORT static void test();
 
