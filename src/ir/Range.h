@@ -26,6 +26,8 @@ class Range : public NodeRef {
    * \return the pointer to the internal node container
    */
   inline const RangeNode* operator->() const;
+  /*! \brief specify container node */
+  using ContainerType = RangeNode;
   /*!
    * \brief construct a new range with min and extent
    *  The corresponding constructor is removed,

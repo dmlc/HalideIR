@@ -164,6 +164,8 @@ class Array : public NodeRef {
   inline bool empty() const {
     return size() == 0;
   }
+  /*! \brief specify container node */
+  using ContainerType = ArrayNode;
   friend std::ostream& operator<<(std::ostream &os, const Array<T>& r) {  // NOLINT(*)
     for (size_t i = 0; i < r.size(); ++i) {
       if (i == 0) {
