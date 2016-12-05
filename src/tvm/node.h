@@ -142,13 +142,6 @@ class NodeRef {
   NodeRef() = default;
   explicit NodeRef(std::shared_ptr<Node> node) : node_(node) {}
 
- protected:
-  template<typename, typename>
-  friend class Array;
-  template<typename>
-  friend class IRFunctor;
-  friend class Node;
-  friend class APIVariantValue;
   /*! \brief the internal node object, do not touch  */
   std::shared_ptr<Node> node_;
 };
