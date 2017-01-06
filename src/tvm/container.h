@@ -377,6 +377,14 @@ class Map : public NodeRef {
   inline const V operator[](const K& key) const {
     return V(static_cast<const MapNode*>(node_.get())->data.at(key.node_));
   }
+  /*!
+   * \brief Read element from map.
+   * \param key The key
+   * \return the corresonding element.
+   */
+  inline const V at(const K& key) const {
+    return V(static_cast<const MapNode*>(node_.get())->data.at(key.node_));
+  }
   /*! \return The size of the array */
   inline size_t size() const {
     if (node_.get() == nullptr) return 0;
@@ -403,8 +411,8 @@ class Map : public NodeRef {
     return static_cast<MapNode*>(node_.get());
   }
   /*!
-   * \brief set i-th element of the array.
-   * \param i The index
+   * \brief set the Map.
+   * \param key The index key.
    * \param value The value to be setted.
    */
   inline void Set(const K& key, const V& value) {

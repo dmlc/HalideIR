@@ -69,7 +69,7 @@ class IRFunctor<R(const NodeRef& n, Args...)> {
     uint32_t type_index = n.type_index();
     internal_assert(type_index < func_.size() &&
                     func_[type_index] != nullptr)
-        << "IRFunctor calls un-registered function on type"
+        << "IRFunctor calls un-registered function on type "
         << Node::TypeIndex2Key(type_index);
     return func_[type_index](n, std::forward<Args>(args)...);
   }
@@ -87,7 +87,7 @@ class IRFunctor<R(const NodeRef& n, Args...)> {
     }
     internal_assert(func_[tindex] == nullptr)
         << "Dispatch for " << Node::TypeIndex2Key(tindex)
-        << "is already set";
+        << " is already set";
     func_[tindex] = f;
     return *this;
   }
