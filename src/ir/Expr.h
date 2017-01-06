@@ -15,7 +15,7 @@
 #include "base/Util.h"
 #include "tvm/node.h"
 #include "tvm/ir_functor.h"
-#include "tvm/array.h"
+#include "tvm/container.h"
 
 namespace Halide {
 namespace Internal {

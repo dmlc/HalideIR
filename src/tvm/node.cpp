@@ -1,7 +1,7 @@
 /*!
  *  Copyright (c) 2016 by Contributors
  *  Implementation of IR Node API
- * \file ir_node.cpp
+ * \file node.cpp
  */
 #include <memory>
 #include <atomic>
