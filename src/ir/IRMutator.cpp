@@ -236,7 +236,7 @@ void IRMutator::visit(const Store *op, const Stmt &s) {
 
 void IRMutator::visit(const Provide *op, const Stmt &s) {
     vector<Expr> new_args(op->args.size());
-    vector<Expr> new_values(op->values.size());
+
     bool changed = false;
 
     // Mutate the args
@@ -246,18 +246,14 @@ void IRMutator::visit(const Provide *op, const Stmt &s) {
         if (!new_arg.same_as(old_arg)) changed = true;
         new_args[i] = new_arg;
     }
-
-    for (size_t i = 0; i < op->values.size(); i++) {
-        Expr old_value = op->values[i];
-        Expr new_value = mutate(old_value);
-        if (!new_value.same_as(old_value)) changed = true;
-        new_values[i] = new_value;
-    }
+    Expr old_value = op->value;
+    Expr new_value = mutate(old_value);
+    if (!new_value.same_as(old_value)) changed = true;
 
     if (!changed) {
       stmt = s;
     } else {
-      stmt = Provide::make(op->func, new_values, new_args);
+      stmt = Provide::make(op->func, op->value_index, new_value, new_args);
     }
 }
 
@@ -311,7 +307,8 @@ void IRMutator::visit(const Realize *op, const Stmt &s) {
         condition.same_as(op->condition)) {
       stmt = s;
     } else {
-      stmt = Realize::make(op->func, op->types, new_bounds,
+      stmt = Realize::make(op->func, op->value_index,
+                           op->type, new_bounds,
                            condition, body);
     }
 }

@@ -450,14 +450,17 @@ struct Store : public StmtNode<Store> {
  * Store node. */
 struct Provide : public StmtNode<Provide> {
     FunctionRef func;
-    Array<Expr> values;
+    int value_index;
+    Expr value;
     Array<Expr> args;
 
-    EXPORT static Stmt make(FunctionRef func, Array<Expr> values, Array<Expr> args);
+    EXPORT static Stmt make(FunctionRef func, int value_index,
+                            Expr value, Array<Expr> args);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("func", &func);
-        v->Visit("values", &values);
+        v->Visit("value_index", &value_index);
+        v->Visit("value", &value);
         v->Visit("args", &args);
     }
     static const IRNodeType _type_info = IRNodeType::Provide;
@@ -534,19 +537,22 @@ struct Free : public StmtNode<Free> {
  * the condition evaluates to true. */
 struct Realize : public StmtNode<Realize> {
     FunctionRef func;
-    std::vector<Type> types;
+    int value_index;
+    Type type;
     Region bounds;
     Expr condition;
     Stmt body;
 
     EXPORT static Stmt make(FunctionRef func,
-                            const std::vector<Type> &types,
+                            int value_index,
+                            Type type,
                             const Region &bounds,
                             Expr condition, Stmt body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("func", &func);
-        // v->Visit("types", &types);
+        v->Visit("value_index", &value_index);
+        v->Visit("dtype", &type);
         v->Visit("bounds", &bounds);
         v->Visit("condition", &condition);
         v->Visit("body", &body);
