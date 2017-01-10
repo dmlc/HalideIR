@@ -249,6 +249,10 @@ class Array : public NodeRef {
   using iterator = IterAdapter<Ptr2NodeRef,
                                std::vector<std::shared_ptr<Node> >::const_iterator>;
 
+  using reverse_iterator = IterAdapter<
+    Ptr2NodeRef,
+    std::vector<std::shared_ptr<Node> >::const_reverse_iterator>;
+
   /*! \return begin iterator */
   inline iterator begin() const {
     return iterator(static_cast<const ArrayNode*>(node_.get())->data.begin());
@@ -256,6 +260,14 @@ class Array : public NodeRef {
   /*! \return end iterator */
   inline iterator end() const {
     return iterator(static_cast<const ArrayNode*>(node_.get())->data.end());
+  }
+  /*! \return rbegin iterator */
+  inline reverse_iterator rbegin() const {
+    return reverse_iterator(static_cast<const ArrayNode*>(node_.get())->data.rbegin());
+  }
+  /*! \return rend iterator */
+  inline reverse_iterator rend() const {
+    return reverse_iterator(static_cast<const ArrayNode*>(node_.get())->data.rend());
   }
 
   friend std::ostream& operator<<(std::ostream &os, const Array<T>& r) {  // NOLINT(*)
