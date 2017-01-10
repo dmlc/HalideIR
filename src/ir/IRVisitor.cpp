@@ -162,9 +162,7 @@ void IRVisitor::visit(const Store *op, const Stmt &) {
 }
 
 void IRVisitor::visit(const Provide *op, const Stmt &) {
-    for (size_t i = 0; i < op->values.size(); i++) {
-        op->values[i].accept(this);
-    }
+    op->value.accept(this);
     for (size_t i = 0; i < op->args.size(); i++) {
         op->args[i].accept(this);
     }
@@ -386,9 +384,7 @@ void IRGraphVisitor::visit(const Store *op, const Stmt &) {
 }
 
 void IRGraphVisitor::visit(const Provide *op, const Stmt &) {
-    for (size_t i = 0; i < op->values.size(); i++) {
-        include(op->values[i]);
-    }
+    include(op->value);
     for (size_t i = 0; i < op->args.size(); i++) {
         include(op->args[i]);
     }

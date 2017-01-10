@@ -267,18 +267,18 @@ Stmt Store::make(VarExpr buffer_var, Expr value, Expr index) {
     return Stmt(node);
 }
 
-Stmt Provide::make(FunctionRef func, Array<Expr> values, Array<Expr> args) {
-    internal_assert(!values.empty()) << "Provide of no values\n";
-    for (size_t i = 0; i < values.size(); i++) {
-        internal_assert(values[i].defined()) << "Provide of undefined value\n";
-    }
+Stmt Provide::make(FunctionRef func, int value_index, Expr value, Array<Expr> args) {
+    internal_assert(value_index >=0 && value_index < func->num_outputs())
+        << "value index output function return value bound";
+    internal_assert(value.defined()) << "Provide of undefined value\n";
     for (size_t i = 0; i < args.size(); i++) {
         internal_assert(args[i].defined()) << "Provide to undefined location\n";
     }
 
     std::shared_ptr<Provide> node = std::make_shared<Provide>();
     node->func = func;
-    node->values = values;
+    node->value_index = value_index;
+    node->value = value;
     node->args = args;
     return Stmt(node);
 }
@@ -349,7 +349,8 @@ Stmt Free::make(VarExpr buffer_var) {
     return Stmt(node);
 }
 
-Stmt Realize::make(FunctionRef func, const std::vector<Type> &types, const Region &bounds, Expr condition, Stmt body) {
+Stmt Realize::make(FunctionRef func, int value_index, Type type,
+                   const Region &bounds, Expr condition, Stmt body) {
     for (size_t i = 0; i < bounds.size(); i++) {
         internal_assert(bounds[i]->min.defined()) << "Realize of undefined\n";
         internal_assert(bounds[i]->extent.defined()) << "Realize of undefined\n";
@@ -357,13 +358,13 @@ Stmt Realize::make(FunctionRef func, const std::vector<Type> &types, const Regio
         internal_assert(bounds[i]->extent.type().is_scalar()) << "Realize of vector size\n";
     }
     internal_assert(body.defined()) << "Realize of undefined\n";
-    internal_assert(!types.empty()) << "Realize has empty type\n";
     internal_assert(condition.defined()) << "Realize with undefined condition\n";
     internal_assert(condition.type().is_bool()) << "Realize condition is not boolean\n";
 
     std::shared_ptr<Realize> node = std::make_shared<Realize>();
     node->func = func;
-    node->types = types;
+    node->value_index = value_index;
+    node->type = type;
     node->bounds = bounds;
     node->condition = condition;
     node->body = body;

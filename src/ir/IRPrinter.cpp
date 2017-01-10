@@ -460,20 +460,12 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
         p->print(op->args[i]);
         if (i < op->args.size() - 1) p->stream << ", ";
     }
-    p->stream << ") = ";
-    if (op->values.size() > 1) {
-        p->stream << "{";
+    p->stream << ")";
+    if (op->func->num_outputs() != 1) {
+      p->stream << ".value[" << op->value_index << "]";
     }
-    for (size_t i = 0; i < op->values.size(); i++) {
-        if (i > 0) {
-            p->stream << ", ";
-        }
-        p->print(op->values[i]);
-    }
-    if (op->values.size() > 1) {
-        p->stream << "}";
-    }
-
+    p->stream << " =";
+    p->print(op->value);
     p->stream << '\n';
 });
 
@@ -520,6 +512,9 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
         if (i < op->bounds.size() - 1) p->stream << ", ";
     }
     p->stream << ")";
+    if (op->func->num_outputs() != 1) {
+      p->stream << ".value[" << op->value_index << "]";
+    }
     if (!is_one(op->condition)) {
         p->stream << " if ";
         p->print(op->condition);

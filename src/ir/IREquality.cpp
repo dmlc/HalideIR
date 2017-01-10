@@ -90,7 +90,7 @@ private:
     void visit(const Realize *, const Stmt &);
     void visit(const Block *, const Stmt &);
     void visit(const IfThenElse *, const Stmt &);
-    void visit(const Evaluate *, const Stmt &);  
+    void visit(const Evaluate *, const Stmt &);
 };
 
 template<typename T>
@@ -393,8 +393,9 @@ void IRComparer::visit(const Provide *op, const Stmt &s) {
     const Provide *node = stmt_.as<Provide>();
 
     compare_node_refs(node->func, op->func);
+    compare_scalar(node->value_index, op->value_index);
     compare_expr_vector(node->args, op->args);
-    compare_expr_vector(node->values, op->values);
+    compare_expr(node->value, op->value);
 }
 
 void IRComparer::visit(const Allocate *op, const Stmt &s) {
@@ -412,11 +413,10 @@ void IRComparer::visit(const Realize *op, const Stmt &s) {
     const Realize *node = stmt_.as<Realize>();
 
     compare_node_refs(node->func, op->func);
-    compare_scalar(node->types.size(), op->types.size());
+    compare_scalar(node->value_index, op->value_index);
+    compare_types(node->type, op->type);
     compare_scalar(node->bounds.size(), op->bounds.size());
-    for (size_t i = 0; (result == Equal) && (i < node->types.size()); i++) {
-        compare_types(node->types[i], op->types[i]);
-    }
+
     for (size_t i = 0; (result == Equal) && (i < node->bounds.size()); i++) {
         compare_expr(node->bounds[i]->min, op->bounds[i]->min);
         compare_expr(node->bounds[i]->extent, op->bounds[i]->extent);
