@@ -188,7 +188,7 @@ class SubstituteInAllLets : public IRGraphMutator {
 
     using IRGraphMutator::visit;
 
-    void visit(const Let *op, Expr &) {
+    void visit(const Let *op, const Expr &) {
         Expr value = mutate(op->value);
         Expr body = mutate(op->body);
         expr = graph_substitute(op->var, value, body);

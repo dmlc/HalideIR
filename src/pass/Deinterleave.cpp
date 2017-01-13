@@ -159,7 +159,7 @@ private:
 
     using IRMutator::visit;
 
-    void visit(const Broadcast *op, Expr &e) {
+    void visit(const Broadcast *op, const Expr &e) {
         if (new_lanes == 1) {
             expr = op->value;
         } else {
@@ -167,7 +167,7 @@ private:
         }
     }
 
-    void visit(const Load *op, Expr &e) {
+    void visit(const Load *op, const Expr &e) {
         if (op->type.is_scalar()) {
             expr = e;
         } else {
@@ -176,7 +176,7 @@ private:
         }
     }
 
-    void visit(const Ramp *op, Expr &e) {
+    void visit(const Ramp *op, const Expr &e) {
         expr = op->base + starting_lane * op->stride;
         internal_assert(expr.type() == op->base.type());
         if (new_lanes > 1) {
@@ -184,7 +184,7 @@ private:
         }
     }
 
-    void visit(const Variable *op, Expr &e) {
+    void visit(const Variable *op, const Expr &e) {
         if (op->type.is_scalar()) {
             expr = e;
         } else {
@@ -225,7 +225,7 @@ private:
         }
     }
 
-    void visit(const Cast *op, Expr &e) {
+    void visit(const Cast *op, const Expr &e) {
         if (op->type.is_scalar()) {
             expr = e;
         } else {
@@ -234,7 +234,7 @@ private:
         }
     }
 
-    void visit(const Call *op, Expr &e) {
+    void visit(const Call *op, const Expr &e) {
         Type t = op->type.with_lanes(new_lanes);
 
         // Don't mutate scalars
@@ -299,7 +299,7 @@ private:
         }
     }
 
-    void visit(const Let *op, Expr &e) {
+    void visit(const Let *op, const Expr &e) {
         if (op->type.is_vector()) {
             Expr new_value = mutate(op->value);
             std::string new_name = unique_name('t');

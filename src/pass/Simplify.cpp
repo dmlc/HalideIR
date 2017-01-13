@@ -10,7 +10,6 @@
 #include "ir/IRPrinter.h"
 #include "ir/IRMutator.h"
 #include "Scope.h"
-//#include "ir/Var.h"
 #include "base/Debug.h"
 #include "ModulusRemainder.h"
 #include "Substitute.h"
@@ -164,7 +163,7 @@ public:
         Expr new_e = IRMutator::mutate(e);
         indent--;
         if (!new_e.same_as(e)) {
-            debug(1)
+          debug(1)
                 << spaces << "Before: " << e << "\n"
                 << spaces << "After:  " << new_e << "\n";
         }
@@ -4105,7 +4104,16 @@ private:
         // Iteratively peel off certain operations from the let value and push them inside.
         Expr new_value = value;
         string new_name = op->var->name_hint + ".s";
-        VarExpr new_var = Variable::make(new_value.type(), new_name);
+        VarExpr new_var;
+        if (new_value.as<Ramp>()) {
+          new_var = Variable::make(new_value.as<Ramp>()->base.type(), new_name);
+        } else if (new_value.as<Broadcast>()) {
+          new_var = Variable::make(new_value.as<Broadcast>()->value.type(), new_name);
+        } else if (new_value.as<Cast>()) {
+          new_var = Variable::make(new_value.as<Cast>()->value.type(), new_name);
+        } else {
+          new_var = Variable::make(new_value.type(), new_name);
+        }
         Expr replacement = new_var;
 
         debug(4) << "simplify let " << op->var << " = " << value << " in ... " << op->var << " ...\n";
@@ -4163,11 +4171,11 @@ private:
                 new_value = max->a;
             } else if (ramp && is_const(ramp->stride)) {
                 new_value = ramp->base;
-                new_var = Variable::make(new_value.type(), new_name);
+                //new_var = Variable::make(new_value.type(), new_name);
                 replacement = substitute(new_var, Ramp::make(new_var, ramp->stride, ramp->lanes), replacement);
             } else if (broadcast) {
                 new_value = broadcast->value;
-                new_var = Variable::make(new_value.type(), new_name);
+                //new_var = Variable::make(new_value.type(), new_name);
                 replacement = substitute(new_var, Broadcast::make(new_var, broadcast->lanes), replacement);
             } else if (cast && cast->type.bits() > cast->value.type().bits()) {
                 // Widening casts get pushed inwards, narrowing casts
@@ -4175,7 +4183,7 @@ private:
                 // helps with peephole optimizations in codegen that
                 // skip the widening entirely.
                 new_value = cast->value;
-                new_var = Variable::make(new_value.type(), new_name);
+                //new_var = Variable::make(new_value.type(), new_name);
                 replacement = substitute(new_var, Cast::make(cast->type, new_var), replacement);
             } else {
                 break;
@@ -4568,9 +4576,12 @@ Expr broadcast(Expr base, int w) {
     return Broadcast::make(base, w);
 }
 
-/*
+VarExpr var(string name) {
+    return Variable::make(Int(32), name);
+}
+
 void check_casts() {
-    Expr x = Var("x");
+    Expr x = var("x");
 
     check(cast(Int(32), cast(Int(32), x)), x);
     check(cast(Float(32), 3), 3.0f);
@@ -4631,7 +4642,7 @@ void check_casts() {
 }
 
 void check_algebra() {
-    Expr x = Var("x"), y = Var("y"), z = Var("z"), w = Var("w"), v = Var("v");
+    Expr x = var("x"), y = var("y"), z = var("z"), w = var("w"), v = var("v");
     Expr xf = cast<float>(x);
     Expr yf = cast<float>(y);
     Expr t = const_true(), f = const_false();
@@ -4831,7 +4842,7 @@ void check_algebra() {
 }
 
 void check_vectors() {
-    Expr x = Var("x"), y = Var("y"), z = Var("z");
+    Expr x = var("x"), y = var("y"), z = var("z");
 
     check(Expr(broadcast(y, 4)) / Expr(broadcast(x, 4)),
           Expr(broadcast(y/x, 4)));
@@ -4865,7 +4876,7 @@ void check_vectors() {
 }
 
 void check_bounds() {
-    Expr x = Var("x"), y = Var("y"), z = Var("z");
+    Expr x = var("x"), y = var("y"), z = var("z");
 
     check(min(Expr(7), 3), 3);
     check(min(Expr(4.25f), 1.25f), 1.25f);
@@ -5170,7 +5181,7 @@ void check_bounds() {
 }
 
 void check_boolean() {
-    Expr x = Var("x"), y = Var("y"), z = Var("z"), w = Var("w");
+    Expr x = var("x"), y = var("y"), z = var("z"), w = var("w");
     Expr xf = cast<float>(x);
     Expr yf = cast<float>(y);
     Expr t = const_true(), f = const_false();
@@ -5471,7 +5482,7 @@ void check_boolean() {
 }
 
 void check_math() {
-    Var x = Var("x");
+    Expr x = var("x");
 
     check(sqrt(4.0f), 2.0f);
     check(log(0.5f + 0.5f), 0.0f);
@@ -5661,11 +5672,10 @@ void check_indeterminate() {
         }
     }
 }
-*/
 }  // namespace
-/*
+
 void simplify_test() {
-    Expr x = Var("x"), y = Var("y"), z = Var("z"), w = Var("w"), v = Var("v");
+    VarExpr x = var("x"), y = var("y"), z = var("z"), w = var("w"), v = var("v");
     Expr xf = cast<float>(x);
     Expr yf = cast<float>(y);
     Expr t = const_true(), f = const_false();
@@ -5693,19 +5703,19 @@ void simplify_test() {
 
     v = Variable::make(Int(32, 4), "v");
     // Check constants get pushed inwards
-    check(Let::make("x", 3, x+4), 7);
-
+    check(Let::make(x, 3, x+4), 7);
+    
     // Check ramps in lets get pushed inwards
-    check(Let::make("v", ramp(x*2+7, 3, 4), v + Expr(broadcast(2, 4))),
+    check(Let::make(v, ramp(x*2+7, 3, 4), v + Expr(broadcast(2, 4))),
           ramp(x*2+9, 3, 4));
 
     // Check broadcasts in lets get pushed inwards
-    check(Let::make("v", broadcast(x, 4), v + Expr(broadcast(2, 4))),
+    check(Let::make(v, broadcast(x, 4), v + Expr(broadcast(2, 4))),
           broadcast(x+2, 4));
 
     // Check that dead lets get stripped
-    check(Let::make("x", 3*y*y*y, 4), 4);
-    check(Let::make("x", 0, 0), 0);
+    check(Let::make(x, 3*y*y*y, 4), 4);
+    check(Let::make(x, 0, 0), 0);
 
     // Test case with most negative 32-bit number, as constant to check that it is not negated.
     check(((x * (int32_t)0x80000000) + (y + z * (int32_t)0x80000000)),
@@ -5744,7 +5754,7 @@ void simplify_test() {
 
     // Check if we can simplify away comparison on vector types considering bounds.
     Scope<Interval> bounds_info;
-    bounds_info.push("x", Interval(0,4));
+    bounds_info.push(x.get(), Interval(0,4));
     check_in_bounds(ramp(x,  1, 4) < broadcast( 0, 4), const_false(4), bounds_info);
     check_in_bounds(ramp(x,  1, 4) < broadcast( 8, 4), const_true(4),  bounds_info);
     check_in_bounds(ramp(x, -1, 4) < broadcast(-4, 4), const_false(4), bounds_info);
@@ -5780,9 +5790,10 @@ void simplify_test() {
 
     // Now check that an interleave of some collapsible loads collapses into a single dense load
     {
-        Expr load1 = Load::make(Float(32, 4), "buf", ramp(x, 2, 4), BufferPtr(), Parameter());
-        Expr load2 = Load::make(Float(32, 4), "buf", ramp(x+1, 2, 4), BufferPtr(), Parameter());
-        Expr load12 = Load::make(Float(32, 8), "buf", ramp(x, 1, 8), BufferPtr(), Parameter());
+        VarExpr buf = var("buf"), buf2 = var("buf2");
+        Expr load1 = Load::make(Float(32, 4), buf, ramp(x, 2, 4));
+        Expr load2 = Load::make(Float(32, 4), buf, ramp(x+1, 2, 4));
+        Expr load12 = Load::make(Float(32, 8), buf, ramp(x, 1, 8));
         check(interleave_vectors({load1, load2}), load12);
 
         // They don't collapse in the other order
@@ -5790,7 +5801,7 @@ void simplify_test() {
         check(e, e);
 
         // Or if the buffers are different
-        Expr load3 = Load::make(Float(32, 4), "buf2", ramp(x+1, 2, 4), BufferPtr(), Parameter());
+        Expr load3 = Load::make(Float(32, 4), buf2, ramp(x+1, 2, 4));
         e = interleave_vectors({load1, load3});
         check(e, e);
 
@@ -5815,6 +5826,6 @@ void simplify_test() {
 
     std::cout << "Simplify test passed" << std::endl;
 }
-*/
+
 }
 }

@@ -19,7 +19,7 @@ class ExprUsesVars : public IRGraphVisitor {
     const Scope<T> &vars;
     Scope<Expr> scope;
 
-    void visit(const Variable *v) {
+    void visit(const Variable *v, const Expr&) {
         if (vars.contains(v)) {
             result = true;
         } else if (scope.contains(v)) {
