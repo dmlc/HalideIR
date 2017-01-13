@@ -4105,14 +4105,15 @@ private:
         Expr new_value = value;
         string new_name = op->var->name_hint + ".s";
         VarExpr new_var;
-        if (new_value.as<Ramp>())
+        if (new_value.as<Ramp>()) {
           new_var = Variable::make(new_value.as<Ramp>()->base.type(), new_name);
-        else if (new_value.as<Broadcast>())
+        } else if (new_value.as<Broadcast>()) {
           new_var = Variable::make(new_value.as<Broadcast>()->value.type(), new_name);
-        else if (new_value.as<Cast>())
+        } else if (new_value.as<Cast>()) {
           new_var = Variable::make(new_value.as<Cast>()->value.type(), new_name);
-        else
+        } else {
           new_var = Variable::make(new_value.type(), new_name);
+        }
         Expr replacement = new_var;
 
         debug(4) << "simplify let " << op->var << " = " << value << " in ... " << op->var << " ...\n";
