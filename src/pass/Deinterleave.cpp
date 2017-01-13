@@ -178,7 +178,6 @@ private:
 
     void visit(const Ramp *op, const Expr &e) {
         expr = op->base + starting_lane * op->stride;
-        std::cout << "Deinterleave::visit(Ramp) " << expr << std::endl;
         internal_assert(expr.type() == op->base.type());
         if (new_lanes > 1) {
             expr = Ramp::make(expr, op->stride * lane_stride, new_lanes);
@@ -370,9 +369,7 @@ Expr extract_lane(Expr e, int lane) {
     d.starting_lane = lane;
     d.lane_stride = e.type().lanes();
     d.new_lanes = 1;
-    std::cout << "aaaa " << e.as<Ramp>() << std::endl;
     e = d.mutate(e);
-    std::cout << "extract_lane: " << e << std::endl;
     return simplify(e);
 }
 /*
