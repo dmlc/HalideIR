@@ -82,9 +82,10 @@ class Node {
    */
   template<typename T>
   inline bool is_type() const;
-
   // node ref can see this
   friend class NodeRef;
+  // friendly type message
+  static constexpr const char* _type_key = "Node";
 };
 
 
