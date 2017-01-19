@@ -1,5 +1,5 @@
 export LDFLAGS = -pthread -lm
-export CFLAGS =  -std=c++11 -Wall -O2 -fno-rtti\
+export CFLAGS =  -std=c++11 -Wall -O2\
 	 -Iinclude -Idmlc-core/include -Isrc -fPIC
 
 # specify tensor path
