@@ -97,6 +97,8 @@ struct BaseStmtNode : public IRNode {
      * visitors.
      */
     virtual void accept(IRVisitor *v, const Stmt &s) const = 0;
+    // friendly type message
+    static constexpr const char* _type_key = "Stmt";
 };
 
 /** A base class for expression nodes. They all contain their types
@@ -108,6 +110,8 @@ struct BaseExprNode : public IRNode {
      * visitors.
      */
     virtual void accept(IRVisitor *v, const Expr &e) const = 0;
+    // friendly type message
+    static constexpr const char* _type_key = "Expr";
 };
 
 /** We use the "curiously recurring template pattern" to avoid
