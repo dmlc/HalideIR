@@ -69,6 +69,7 @@ enum class IRNodeType : int {
     Block,
     IfThenElse,
     Evaluate,
+    AttrStmt,
     ExtensionExpr
 };
 

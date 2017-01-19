@@ -190,6 +190,17 @@ void IRMutator::visit(const LetStmt *op, const Stmt &s) {
     }
 }
 
+void IRMutator::visit(const AttrStmt *op, const Stmt &s) {
+    Expr value = mutate(op->value);
+    Stmt body = mutate(op->body);
+    if (value.same_as(op->value) &&
+        body.same_as(op->body)) {
+      stmt = s;
+    } else {
+      stmt = AttrStmt::make(op->node, op->type_key, value, body);
+    }
+}
+
 void IRMutator::visit(const AssertStmt *op, const Stmt &s) {
     Expr condition = mutate(op->condition);
     Expr message = mutate(op->message);

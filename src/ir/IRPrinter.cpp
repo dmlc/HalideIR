@@ -399,6 +399,15 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 });
 
 TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+.set_dispatch<AttrStmt>([](const AttrStmt *op, IRPrinter *p) {
+    p->do_indent();
+    p->stream << "// attr " << op->type_key << " = ";
+    p->print(op->value);
+    p->stream << '\n';
+    p->print(op->body);
+});
+
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
 .set_dispatch<AssertStmt>([](const AssertStmt *op, IRPrinter* p) {
     p->do_indent();
     p->stream << "assert(";

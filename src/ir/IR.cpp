@@ -215,6 +215,15 @@ Stmt LetStmt::make(VarExpr var, Expr value, Stmt body) {
     return Stmt(node);
 }
 
+Stmt AttrStmt::make(NodeRef node, std::string type_key, Expr value, Stmt body) {
+  auto n = std::make_shared<AttrStmt>();
+  n->node = node;
+  n->type_key = type_key;
+  n->value = value;
+  n->body = body;
+  return Stmt(n);
+}
+
 Stmt AssertStmt::make(Expr condition, Expr message) {
     internal_assert(condition.defined()) << "AssertStmt of undefined\n";
     internal_assert(message.type() == Int(32)) << "AssertStmt message must be an int:" << message << "\n";
@@ -477,6 +486,7 @@ template<> void ExprNode<Broadcast>::accept(IRVisitor *v, const Expr &e) const {
 template<> void ExprNode<Call>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Call *)this, e); }
 template<> void ExprNode<Let>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Let *)this, e); }
 template<> void StmtNode<LetStmt>::accept(IRVisitor *v, const Stmt &s) const { v->visit((const LetStmt *)this, s); }
+template<> void StmtNode<AttrStmt>::accept(IRVisitor *v, const Stmt &s) const { v->visit((const AttrStmt *)this, s); }
 template<> void StmtNode<AssertStmt>::accept(IRVisitor *v, const Stmt &s) const { v->visit((const AssertStmt *)this, s); }
 template<> void StmtNode<ProducerConsumer>::accept(IRVisitor *v, const Stmt &s) const { v->visit((const ProducerConsumer *)this, s); }
 template<> void StmtNode<For>::accept(IRVisitor *v, const Stmt &s) const { v->visit((const For *)this, s); }
