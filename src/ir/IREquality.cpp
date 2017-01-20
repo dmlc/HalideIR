@@ -80,6 +80,7 @@ private:
     void visit(const Call *, const Expr &);
     void visit(const Let *, const Expr &);
     void visit(const LetStmt *, const Stmt &);
+    void visit(const AttrStmt *, const Stmt &);
     void visit(const AssertStmt *, const Stmt &);
     void visit(const ProducerConsumer *, const Stmt &);
     void visit(const For *, const Stmt &);
@@ -351,6 +352,16 @@ void IRComparer::visit(const LetStmt *op, const Stmt &s) {
     const LetStmt *node = stmt_.as<LetStmt>();
 
     compare_node_refs(node->var, op->var);
+    compare_expr(node->value, op->value);
+    compare_stmt(node->body, op->body);
+}
+
+
+void IRComparer::visit(const AttrStmt *op, const Stmt &s) {
+    const AttrStmt *node = stmt_.as<AttrStmt>();
+
+    compare_node_refs(node->node, op->node);
+    compare_names(node->type_key, op->type_key);
     compare_expr(node->value, op->value);
     compare_stmt(node->body, op->body);
 }

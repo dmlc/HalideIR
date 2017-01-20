@@ -382,6 +382,40 @@ struct LetStmt : public StmtNode<LetStmt> {
     static constexpr const char* _type_key = "LetStmt";
 };
 
+/*!
+ * \brief Define certain auxiliary attribute for the body to be a symbolic value.
+ *  This provide auxiliary information for IR passes that transforms body.
+ *
+ *  In terms of effect, this is equivalent to Block(Evaluate(value), body).
+ *
+ *  Examples of possible usage:
+ *    - Bound of function, variables.
+ *    - Hint which block corresponds to a parallel region.
+ */
+struct AttrStmt : public StmtNode<AttrStmt> {
+    /*! \brief this is attribute about certain node */
+    NodeRef node;
+    /*! \brief the type key of the attribute */
+    std::string type_key;
+    /*! \brief The attribute value, value is well defined at current scope. */
+    Expr value;
+    /*! \brief The body statement to be executed */
+    Stmt body;
+
+    /*! \brief construct expr from name and rdom */
+    EXPORT static Stmt make(NodeRef node, std::string type_key, Expr value, Stmt body);
+
+    void VisitAttrs(IR::AttrVisitor* v) final {
+        v->Visit("node", &node);
+        v->Visit("type_key", &type_key);
+        v->Visit("value", &value);
+        v->Visit("body", &body);
+    }
+
+    static const IRNodeType _type_info = IRNodeType::AttrStmt;
+    static constexpr const char* _type_key = "AttrStmt";
+};
+
 /** If the 'condition' is false, then evaluate and return the message,
  * which should be a call to an error function. */
 struct AssertStmt : public StmtNode<AssertStmt> {
@@ -776,6 +810,8 @@ struct Variable : public ExprNode<Variable> {
     static const IRNodeType _type_info = IRNodeType::Variable;
     static constexpr const char* _type_key = "Variable";
 };
+
+
 
 /** A for loop. Execute the 'body' statement for all values of the
  * variable loop_var from 'min' to 'min + extent'. There are four
