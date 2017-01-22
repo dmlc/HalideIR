@@ -345,7 +345,8 @@ class Map : public NodeRef {
    * \brief constructor from vector
    * \param init The vector
    */
-  Map(const std::unordered_map<K, V>& init) { // NOLINT(*)
+  template<typename Hash, typename Equal>
+  Map(const std::unordered_map<K, V, Hash, Equal>& init) { // NOLINT(*)
     assign(init.begin(), init.end());
   }
   /*!
