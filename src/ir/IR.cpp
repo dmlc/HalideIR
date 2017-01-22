@@ -226,7 +226,9 @@ Stmt AttrStmt::make(NodeRef node, std::string type_key, Expr value, Stmt body) {
 
 Stmt AssertStmt::make(Expr condition, Expr message) {
     internal_assert(condition.defined()) << "AssertStmt of undefined\n";
-    internal_assert(message.type() == Int(32)) << "AssertStmt message must be an int:" << message << "\n";
+    internal_assert(message.type() == Int(32) ||
+                    message.as<StringImm>()) << "AssertStmt message must be an int or string:"
+                                           << message << "\n";
 
     std::shared_ptr<AssertStmt> node = std::make_shared<AssertStmt>();
     node->condition = condition;
