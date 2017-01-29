@@ -81,6 +81,9 @@ class IterAdapter {
     ++iter_;
     return *this;
   }
+  inline IterAdapter operator+(int offset) const {  // NOLINT(*)
+    return IterAdapter(iter_ + offset);
+  }
   inline bool operator==(IterAdapter other) const {
     return iter_ == other.iter_;
   }
@@ -184,7 +187,7 @@ class Array : public NodeRef {
   void assign(IterType begin, IterType end) {
     auto n = std::make_shared<ArrayNode>();
     for (IterType it = begin; it != end; ++it) {
-      n->data.push_back(it->node_);
+      n->data.push_back((*it).node_);
     }
     node_ = std::move(n);
   }
