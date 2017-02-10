@@ -126,6 +126,8 @@ class NodeRef {
   inline uint32_t type_index() const;
   /*! \return the internal node pointer */
   inline const Node* get() const;
+  /*! \return the internal node pointer */
+  inline const Node* operator->() const;
   /*!
    * \brief Downcast this ir node to its actual type (e.g. Add, or
    * Select). This returns nullptr if the node is not of the requested
@@ -168,6 +170,10 @@ inline bool Node::is_type() const {
 }
 
 inline const Node* NodeRef::get() const {
+  return node_.get();
+}
+
+inline const Node* NodeRef::operator->() const {
   return node_.get();
 }
 
