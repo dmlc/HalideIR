@@ -289,6 +289,14 @@ Expr make_two(Type t) {
     return make_const(t, 2);
 }
 
+Expr make_pos_inf(Type t) {
+    return Call::make(t, "pos_inf_f32", {}, Call::PureExtern);
+}
+
+Expr make_neg_inf(Type t) {
+    return Call::make(t, "neg_inf_f32", {}, Call::PureExtern);
+}
+
 Expr const_true(int w) {
     return make_one(UInt(1, w));
 }
