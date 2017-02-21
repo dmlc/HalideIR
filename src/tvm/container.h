@@ -26,7 +26,7 @@ class ArrayNode : public Node {
   }
 
   static constexpr const char* _type_key = "Array";
-  TVM_DECLARE_NODE_TYPE_INFO(ArrayNode);
+  TVM_DECLARE_NODE_TYPE_INFO(ArrayNode, Node);
 };
 
 /*! \brief map node content in array */
@@ -60,7 +60,7 @@ class MapNode : public Node {
   ContainerType data;
 
   static constexpr const char* _type_key = "Map";
-  TVM_DECLARE_NODE_TYPE_INFO(MapNode);
+  TVM_DECLARE_NODE_TYPE_INFO(MapNode, Node);
 };
 
 /*!

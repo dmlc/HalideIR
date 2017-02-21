@@ -28,6 +28,11 @@ struct TypeManager {
 };
 }  // namespace
 
+const bool Node::_DerivedFrom(uint32_t tid) const {
+  static uint32_t tindex = TypeKey2Index(Node::_type_key);
+  return tid == tindex;
+}
+
 // this is slow, usually caller always hold the result in a static variable.
 uint32_t Node::TypeKey2Index(const char* key) {
   TypeManager *t = TypeManager::Global();

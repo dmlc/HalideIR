@@ -62,8 +62,16 @@ class Node {
    * \param visitor The visitor
    */
   virtual void VisitAttrs(AttrVisitor* visitor) {}
-  /*! \return the type index of the node*/
+  /*! \return the type index of the node */
   virtual const uint32_t type_index() const = 0;
+  /*!
+   * \brief Whether this node derives from node with type_index=tid.
+   *  Implemented by TVM_DECLARE_NODE_TYPE_INFO
+   *
+   * \param tid The type index.
+   * \return the check result.
+   */
+  virtual const bool _DerivedFrom(uint32_t tid) const;
   /*!
    * \brief get a runtime unique type index given a type key
    * \param type_key Type key of a type.
@@ -77,6 +85,11 @@ class Node {
    */
   static const char* TypeIndex2Key(uint32_t index);
   /*!
+   * \return whether the type is derived from
+   */
+  template<typename T>
+  inline bool derived_from() const;
+  /*!
    * \return whether the node is of type T
    * \tparam The type to be checked.
    */
@@ -84,7 +97,6 @@ class Node {
   inline bool is_type() const;
   // node ref can see this
   friend class NodeRef;
-  // friendly type message
   static constexpr const char* _type_key = "Node";
 };
 
@@ -150,15 +162,30 @@ class NodeRef {
 };
 
 /*!
- * \brief helper macro to declare type information in a node
+ * \brief helper macro to declare type information in a base node.
  */
-#define TVM_DECLARE_NODE_TYPE_INFO(TypeName)                   \
-  const char* type_key() const final {                         \
-    return TypeName::_type_key;                                \
-  }                                                            \
-  const uint32_t type_index() const final {                    \
-    static uint32_t tidx = TypeKey2Index(TypeName::_type_key); \
-    return tidx;                                               \
+#define TVM_DECLARE_BASE_NODE_INFO(TypeName, Parent)                    \
+  const bool _DerivedFrom(uint32_t tid) const override {                \
+    static uint32_t tidx = TypeKey2Index(TypeName::_type_key);          \
+    if (tidx == tid) return true;                                       \
+    return Parent::_DerivedFrom(tid);                                   \
+  }
+
+/*!
+ * \brief helper macro to declare type information in a terminal node
+ */
+#define TVM_DECLARE_NODE_TYPE_INFO(TypeName, Parent)                    \
+  const char* type_key() const final {                                  \
+    return TypeName::_type_key;                                         \
+  }                                                                     \
+  const uint32_t type_index() const final {                             \
+    static uint32_t tidx = TypeKey2Index(TypeName::_type_key);          \
+    return tidx;                                                        \
+  }                                                                     \
+  const bool _DerivedFrom(uint32_t tid) const final {                   \
+    static uint32_t tidx = TypeKey2Index(TypeName::_type_key);          \
+    if (tidx == tid) return true;                                       \
+    return Parent::_DerivedFrom(tid);                                   \
   }
 
 // implementations of inline functions after this
@@ -167,6 +194,13 @@ inline bool Node::is_type() const {
   // use static field so query only happens once.
   static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
   return type_id == this->type_index();
+}
+
+template<typename T>
+inline bool Node::derived_from() const {
+  // use static field so query only happens once.
+  static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
+  return this->_DerivedFrom(type_id);
 }
 
 inline const Node* NodeRef::get() const {

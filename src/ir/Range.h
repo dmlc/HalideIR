@@ -57,7 +57,7 @@ class RangeNode : public Node {
   }
 
   static constexpr const char* _type_key = "Range";
-  TVM_DECLARE_NODE_TYPE_INFO(RangeNode);
+  TVM_DECLARE_NODE_TYPE_INFO(RangeNode, Node);
 };
 
 // implements of inline functions

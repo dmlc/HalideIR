@@ -100,6 +100,8 @@ struct BaseStmtNode : public IRNode {
     virtual void accept(IRVisitor *v, const Stmt &s) const = 0;
     // friendly type message
     static constexpr const char* _type_key = "Stmt";
+
+    TVM_DECLARE_BASE_NODE_INFO(BaseStmtNode, Node);
 };
 
 /** A base class for expression nodes. They all contain their types
@@ -113,6 +115,8 @@ struct BaseExprNode : public IRNode {
     virtual void accept(IRVisitor *v, const Expr &e) const = 0;
     // friendly type message
     static constexpr const char* _type_key = "Expr";
+
+    TVM_DECLARE_BASE_NODE_INFO(BaseExprNode, Node);
 };
 
 /** We use the "curiously recurring template pattern" to avoid
@@ -126,7 +130,7 @@ struct ExprNode : public BaseExprNode {
     EXPORT void accept(IRVisitor *v, const Expr &e) const;
     IRNodeType type_info() const final {return T::_type_info;}
 
-    TVM_DECLARE_NODE_TYPE_INFO(T);
+    TVM_DECLARE_NODE_TYPE_INFO(T, BaseExprNode);
 };
 
 template<typename T>
@@ -134,7 +138,7 @@ struct StmtNode : public BaseStmtNode {
     EXPORT void accept(IRVisitor *v, const Stmt &s) const;
     IRNodeType type_info() const final {return T::_type_info;}
 
-    TVM_DECLARE_NODE_TYPE_INFO(T);
+    TVM_DECLARE_NODE_TYPE_INFO(T, BaseStmtNode);
 };
 
 /** IR nodes are passed around opaque handles to them. This is a
