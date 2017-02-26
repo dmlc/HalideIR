@@ -157,64 +157,6 @@ struct all_are_convertible : meta_and<std::is_convertible<Args, To>...> {};
 /** Returns base name and fills in namespaces, outermost one first in vector. */
 std::string extract_namespaces(const std::string &name, std::vector<std::string> &namespaces);
 
-struct FileStat {
-    uint64_t file_size;
-    uint32_t mod_time;  // Unix epoch time
-    uint32_t uid;
-    uint32_t gid;
-    uint32_t mode;
-};
-
-/** Create a unique file with a name of the form prefixXXXXXsuffix in an arbitrary
- * (but writable) directory; this is typically /tmp, but the specific
- * location is not guaranteed. (Note that the exact form of the file name
- * may vary; in particular, the suffix may be ignored on Windows.)
- * The file is created (but not opened), thus this can be called from
- * different threads (or processes, e.g. when building with parallel make)
- * without risking collision. Note that if this file is used as a temporary
- * file, the caller is responsibly for deleting it. Neither the prefix nor suffix
- * may contain a directory separator.
- */
-EXPORT std::string file_make_temp(const std::string &prefix, const std::string &suffix);
-
-/** Create a unique directory in an arbitrary (but writable) directory; this is 
- * typically somewhere inside /tmp, but the specific location is not guaranteed. 
- * The directory will be empty (i.e., this will never return /tmp itself,
- * but rather a new directory inside /tmp). The caller is responsible for removing the 
- * directory after use.
- */
-EXPORT std::string dir_make_temp();
-
-/** Wrapper for access(). Asserts upon error. */
-EXPORT bool file_exists(const std::string &name);
-
-/** Wrapper for unlink(). Asserts upon error. */
-EXPORT void file_unlink(const std::string &name);
-
-/** Wrapper for rmdir(). Asserts upon error. */
-EXPORT void dir_rmdir(const std::string &name);
-
-/** Wrapper for stat(). Asserts upon error. */
-EXPORT FileStat file_stat(const std::string &name);
-
-/** A simple utility class that creates a temporary file in its ctor and
- * deletes that file in its dtor; this is useful for temporary files that you
- * want to ensure are deleted when exiting a certain scope. Since this is essentially
- * just an RAII wrapper around file_make_temp() and file_unlink(), it has the same
- * failure modes (i.e.: assertion upon error).
- */
-class TemporaryFile final {
-public:
-    TemporaryFile(const std::string &prefix, const std::string &suffix)
-        : temp_path(file_make_temp(prefix, suffix)) {}
-    const std::string &pathname() const { return temp_path; }
-    ~TemporaryFile() { file_unlink(temp_path); }
-private:
-    const std::string temp_path;
-    TemporaryFile(const TemporaryFile &) = delete;
-    void operator=(const TemporaryFile &) = delete;
-};
-
 /** Routines to test if math would overflow for signed integers with
  * the given number of bits. */
 // @{

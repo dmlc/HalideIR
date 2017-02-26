@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <type_traits>
+#include <functional>
 #include "base/Debug.h"
 #include "./node.h"
 

@@ -52,7 +52,7 @@ inline uint16_t float2half(const float& value)  {
   v.si ^= sign;
   sign >>= shiftSign;  // logical shift
   s.si = mulN;
-  s.si = s.f * v.f;  // correct subnormals
+  s.si = static_cast<int32_t>(s.f * v.f);  // correct subnormals
   v.si ^= (s.si ^ v.si) & -(minN > v.si);
   v.si ^= (infN ^ v.si) & -((infN > v.si) & (v.si > maxN));
   v.si ^= (nanN ^ v.si) & -((nanN > v.si) & (v.si > infN));
@@ -90,7 +90,7 @@ float16_t::float16_t(float value, RoundingMode roundingMode) {
 
 float16_t::float16_t(double value, RoundingMode roundingMode) {
     static_assert(sizeof(float16_t) == 2, "float16_t is wrong size");
-    this->data = float2half(value);
+    this->data = float2half(static_cast<float>(value));
 }
 
 float16_t::float16_t(const char *stringRepr, RoundingMode roundingMode) {
