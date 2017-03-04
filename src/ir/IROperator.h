@@ -113,6 +113,12 @@ EXPORT Expr make_one(Type t);
 /** Construct the representation of two in the given type */
 EXPORT Expr make_two(Type t);
 
+/** Construct the representation of positive infinite in the given type */
+EXPORT Expr make_pos_inf(Type t);
+
+/** Construct the representation of negative infinite in the given type */
+EXPORT Expr make_neg_inf(Type t);
+
 /** Construct the constant boolean true. May also be a vector of
  * trues, if a lanes argument is given. */
 EXPORT Expr const_true(int lanes = 1);
