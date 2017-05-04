@@ -2,7 +2,7 @@
 #define HALIDE_TYPE_H
 
 #include <stdint.h>
-#include "runtime/HalideRuntime.h"
+#include "TypeBase.h"
 #include "Error.h"
 #include "Util.h"
 #include "Float16.h"
@@ -145,11 +145,6 @@ HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(int64_t);
 HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(uint64_t);
 HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(float);
 HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(double);
-HALIDE_DECLARE_EXTERN_STRUCT_TYPE(buffer_t);
-HALIDE_DECLARE_EXTERN_STRUCT_TYPE(halide_buffer_t);
-HALIDE_DECLARE_EXTERN_STRUCT_TYPE(halide_dimension_t);
-HALIDE_DECLARE_EXTERN_STRUCT_TYPE(halide_device_interface_t);
-HALIDE_DECLARE_EXTERN_STRUCT_TYPE(halide_filter_metadata_t);
 
 // You can make arbitrary user-defined types be "Known" using the
 // macro above. This is useful for making Param<> arguments for

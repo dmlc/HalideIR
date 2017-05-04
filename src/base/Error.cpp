@@ -44,7 +44,7 @@ InternalError _internal_error("");
 
 ErrorReport::ErrorReport(const char *file, int line, const char *condition_string, int flags) : flags(flags) {
 
-    const std::string &source_loc = Introspection::get_source_location();
+    const std::string &source_loc = "";
 
     if (flags & User) {
         // Only mention where inside of libHalide the error tripped if we have debug level > 0
@@ -82,7 +82,7 @@ ErrorReport::ErrorReport(const char *file, int line, const char *condition_strin
     }
 }
 
-ErrorReport::~ErrorReport() 
+ErrorReport::~ErrorReport()
 #if __cplusplus >= 201100 || _MSC_VER >= 1900
     noexcept(false)
 #endif

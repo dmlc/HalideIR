@@ -1,6 +1,7 @@
 #include <sstream>
 #include <cfloat>
-#include "IR.h"
+// TODO(tqchen): remove recursive dep on IR?
+#include "ir/IR.h"
 
 namespace Halide {
 

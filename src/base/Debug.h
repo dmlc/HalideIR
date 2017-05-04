@@ -8,8 +8,7 @@
 #include <iostream>
 #include <string>
 #include <stdlib.h>
-
-#include "Introspection.h"
+#include "Util.h"
 
 namespace Halide {
 

@@ -1,10 +1,11 @@
 #ifndef HALIDE_FLOAT16_H
 #define HALIDE_FLOAT16_H
-#include "runtime/HalideRuntime.h"
+
 #include <stdint.h>
 #include <string>
-#include "RoundingMode.h"
-#include "Util.h"
+#include "./TypeBase.h"
+#include "./RoundingMode.h"
+#include "./Util.h"
 
 namespace Halide {
 
