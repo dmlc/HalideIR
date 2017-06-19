@@ -10,7 +10,7 @@
 #include <atomic>
 
 #include "IR.h"
-#include "Util.h"
+#include "base/Util.h"
 
 namespace Halide {
 
@@ -167,26 +167,6 @@ EXPORT Expr raise_to_integer_power(const Expr &a, int64_t b);
 /** Split a boolean condition into vector of ANDs. If 'cond' is undefined,
  * return an empty vector. */
 EXPORT void split_into_ands(const Expr &cond, std::vector<Expr> &result);
-
-/** A builder to help create Exprs representing halide_buffer_t
- * structs (e.g. foo.buffer) via calls to halide_buffer_init. Fill out
- * the fields and then call build. The resulting Expr will be a call
- * to halide_buffer_init with the struct members as arguments. If the
- * buffer_memory field is undefined, it uses a call to alloca to make
- * some stack memory for the buffer. If the shape_memory field is
- * undefined, it similarly uses stack memory for the shape. If the
- * shape_memory field is null, it uses the dim field already in the
- * buffer. Other unitialized fields will take on a value of zero in
- * the constructed buffer. */
-struct BufferBuilder {
-    Expr buffer_memory, shape_memory;
-    Expr host, device, device_interface;
-    Type type;
-    int dimensions = 0;
-    std::vector<Expr> mins, extents, strides;
-    Expr host_dirty, device_dirty;
-    EXPORT Expr build() const;
-};
 
 } // namespace Internal
 
@@ -689,7 +669,7 @@ inline Expr max(const Expr &a, float b) {return max(a, Expr(b));}
  * vector, after doing any necessary type coersion using
  * \ref Internal::match_types. Vectorizes cleanly on most platforms
  * (with the exception of integer types on x86 without SSE4).
- * The expressions are folded from right ie. max(.., max(.., ..)). 
+ * The expressions are folded from right ie. max(.., max(.., ..)).
  * The arguments can be any mix of types but must all be convertible to Expr. */
 template<typename A, typename B, typename C, typename... Rest,
          typename std::enable_if<Halide::Internal::all_are_convertible<Expr, Rest...>::value>::type* = nullptr>

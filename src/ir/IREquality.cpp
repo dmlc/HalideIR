@@ -36,60 +36,64 @@ public:
     IRComparer(IRCompareCache *c = nullptr) : result(Equal), cache(c) {}
 
 private:
-    Expr expr;
-    Stmt stmt;
+    Expr expr_;
+    Stmt stmt_;
     IRCompareCache *cache;
 
     CmpResult compare_names(const std::string &a, const std::string &b);
+    CmpResult compare_ptrs(const Node* a, const Node* b);
+    CmpResult compare_node_refs(const NodeRef& a, const NodeRef& b);
     CmpResult compare_types(Type a, Type b);
-    CmpResult compare_expr_vector(const std::vector<Expr> &a, const std::vector<Expr> &b);
+    CmpResult compare_expr_vector(const Array<Expr> &a, const Array<Expr> &b);
 
     // Compare two things that already have a well-defined operator<
     template<typename T>
     CmpResult compare_scalar(T a, T b);
 
-    void visit(const IntImm *);
-    void visit(const UIntImm *);
-    void visit(const FloatImm *);
-    void visit(const StringImm *);
-    void visit(const Cast *);
-    void visit(const Variable *);
-    void visit(const Add *);
-    void visit(const Sub *);
-    void visit(const Mul *);
-    void visit(const Div *);
-    void visit(const Mod *);
-    void visit(const Min *);
-    void visit(const Max *);
-    void visit(const EQ *);
-    void visit(const NE *);
-    void visit(const LT *);
-    void visit(const LE *);
-    void visit(const GT *);
-    void visit(const GE *);
-    void visit(const And *);
-    void visit(const Or *);
-    void visit(const Not *);
-    void visit(const Select *);
-    void visit(const Load *);
-    void visit(const Ramp *);
-    void visit(const Broadcast *);
-    void visit(const Call *);
-    void visit(const Let *);
-    void visit(const LetStmt *);
-    void visit(const AssertStmt *);
-    void visit(const ProducerConsumer *);
-    void visit(const For *);
-    void visit(const Store *);
-    void visit(const Provide *);
-    void visit(const Allocate *);
-    void visit(const Free *);
-    void visit(const Realize *);
-    void visit(const Block *);
-    void visit(const IfThenElse *);
-    void visit(const Evaluate *);
-    void visit(const Shuffle *);
-    void visit(const Prefetch *);
+
+    void visit(const IntImm *, const Expr &);
+    void visit(const UIntImm *, const Expr &);
+    void visit(const FloatImm *, const Expr &);
+    void visit(const StringImm *, const Expr &);
+    void visit(const Cast *, const Expr &);
+    void visit(const Variable *, const Expr &);
+    void visit(const Add *, const Expr &);
+    void visit(const Sub *, const Expr &);
+    void visit(const Mul *, const Expr &);
+    void visit(const Div *, const Expr &);
+    void visit(const Mod *, const Expr &);
+    void visit(const Min *, const Expr &);
+    void visit(const Max *, const Expr &);
+    void visit(const EQ *, const Expr &);
+    void visit(const NE *, const Expr &);
+    void visit(const LT *, const Expr &);
+    void visit(const LE *, const Expr &);
+    void visit(const GT *, const Expr &);
+    void visit(const GE *, const Expr &);
+    void visit(const And *, const Expr &);
+    void visit(const Or *, const Expr &);
+    void visit(const Not *, const Expr &);
+    void visit(const Select *, const Expr &);
+    void visit(const Load *, const Expr &);
+    void visit(const Ramp *, const Expr &);
+    void visit(const Broadcast *, const Expr &);
+    void visit(const Call *, const Expr &);
+    void visit(const Let *, const Expr &);
+    void visit(const Shuffle *, const Expr &);
+    void visit(const LetStmt *, const Stmt &);
+    void visit(const AttrStmt *, const Stmt &);
+    void visit(const AssertStmt *, const Stmt &);
+    void visit(const ProducerConsumer *, const Stmt &);
+    void visit(const For *, const Stmt &);
+    void visit(const Store *, const Stmt &);
+    void visit(const Provide *, const Stmt &);
+    void visit(const Allocate *, const Stmt &);
+    void visit(const Free *, const Stmt &);
+    void visit(const Realize *, const Stmt &);
+    void visit(const Prefetch *, const Stmt &);
+    void visit(const Block *, const Stmt &);
+    void visit(const IfThenElse *, const Stmt &);
+    void visit(const Evaluate *, const Stmt &);
 };
 
 template<typename T>
@@ -150,7 +154,7 @@ IRComparer::CmpResult IRComparer::compare_expr(const Expr &a, const Expr &b) {
         return result;
     }
 
-    expr = a;
+    expr_ = a;
     b.accept(this);
 
     if (cache && result == Equal) {
@@ -189,7 +193,7 @@ IRComparer::CmpResult IRComparer::compare_stmt(const Stmt &a, const Stmt &b) {
         return result;
     }
 
-    stmt = a;
+    stmt_ = a;
     b.accept(this);
 
     return result;
@@ -219,8 +223,21 @@ IRComparer::CmpResult IRComparer::compare_names(const string &a, const string &b
     return result;
 }
 
+IRComparer::CmpResult IRComparer::compare_ptrs(const Node* a, const Node* b) {
+    if (result != Equal) return result;
+    if (a < b) {
+      result = LessThan;
+    } else if (a > b) {
+      result = GreaterThan;
+    }
+    return result;
+}
 
-IRComparer::CmpResult IRComparer::compare_expr_vector(const vector<Expr> &a, const vector<Expr> &b) {
+IRComparer::CmpResult IRComparer::compare_node_refs(const NodeRef& a, const NodeRef& b) {
+  return compare_ptrs(a.get(), b.get());
+}
+
+IRComparer::CmpResult IRComparer::compare_expr_vector(const Array<Expr> &a, const Array<Expr> &b) {
     if (result != Equal) return result;
 
     compare_scalar(a.size(), b.size());
@@ -231,235 +248,243 @@ IRComparer::CmpResult IRComparer::compare_expr_vector(const vector<Expr> &a, con
     return result;
 }
 
-void IRComparer::visit(const IntImm *op) {
-    const IntImm *e = expr.as<IntImm>();
-    compare_scalar(e->value, op->value);
+void IRComparer::visit(const IntImm *op, const Expr &e) {
+    const IntImm *node = expr_.as<IntImm>();
+    compare_scalar(node->value, op->value);
 }
 
-void IRComparer::visit(const UIntImm *op) {
-    const UIntImm *e = expr.as<UIntImm>();
-    compare_scalar(e->value, op->value);
+void IRComparer::visit(const UIntImm *op, const Expr &e) {
+    const UIntImm *node = expr_.as<UIntImm>();
+    compare_scalar(node->value, op->value);
 }
 
-void IRComparer::visit(const FloatImm *op) {
-    const FloatImm *e = expr.as<FloatImm>();
-    compare_scalar(e->value, op->value);
+void IRComparer::visit(const FloatImm *op, const Expr &e) {
+    const FloatImm *node = expr_.as<FloatImm>();
+    compare_scalar(node->value, op->value);
 }
 
-void IRComparer::visit(const StringImm *op) {
-    const StringImm *e = expr.as<StringImm>();
-    compare_names(e->value, op->value);
+void IRComparer::visit(const StringImm *op, const Expr &e) {
+    const StringImm *node = expr_.as<StringImm>();
+    compare_names(node->value, op->value);
 }
 
-void IRComparer::visit(const Cast *op) {
-    compare_expr(expr.as<Cast>()->value, op->value);
+void IRComparer::visit(const Cast *op, const Expr &e) {
+    compare_expr(expr_.as<Cast>()->value, op->value);
 }
 
-void IRComparer::visit(const Variable *op) {
-    const Variable *e = expr.as<Variable>();
-    compare_names(e->name, op->name);
+void IRComparer::visit(const Variable *op, const Expr &e) {
+    const Variable *node = expr_.as<Variable>();
+    compare_ptrs(node, op);
 }
 
 namespace {
 template<typename T>
 void visit_binary_operator(IRComparer *cmp, const T *op, Expr expr) {
-    const T *e = expr.as<T>();
-    cmp->compare_expr(e->a, op->a);
-    cmp->compare_expr(e->b, op->b);
+    const T *node = expr.as<T>();
+    cmp->compare_expr(node->a, op->a);
+    cmp->compare_expr(node->b, op->b);
 }
 }
 
-void IRComparer::visit(const Add *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const Sub *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const Mul *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const Div *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const Mod *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const Min *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const Max *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const EQ *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const NE *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const LT *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const LE *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const GT *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const GE *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const And *op) {visit_binary_operator(this, op, expr);}
-void IRComparer::visit(const Or *op) {visit_binary_operator(this, op, expr);}
+void IRComparer::visit(const Add *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const Sub *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const Mul *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const Div *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const Mod *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const Min *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const Max *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const EQ *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const NE *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const LT *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const LE *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const GT *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const GE *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const And *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
+void IRComparer::visit(const Or *op, const Expr &e) {visit_binary_operator(this, op, expr_);}
 
-void IRComparer::visit(const Not *op) {
-    const Not *e = expr.as<Not>();
-    compare_expr(e->a, op->a);
+void IRComparer::visit(const Not *op, const Expr &e) {
+    const Not *node = expr_.as<Not>();
+    compare_expr(node->a, op->a);
 }
 
-void IRComparer::visit(const Select *op) {
-    const Select *e = expr.as<Select>();
-    compare_expr(e->condition, op->condition);
-    compare_expr(e->true_value, op->true_value);
-    compare_expr(e->false_value, op->false_value);
+void IRComparer::visit(const Select *op, const Expr &e) {
+    const Select *node = expr_.as<Select>();
+    compare_expr(node->condition, op->condition);
+    compare_expr(node->true_value, op->true_value);
+    compare_expr(node->false_value, op->false_value);
 
 }
 
-void IRComparer::visit(const Load *op) {
-    const Load *e = expr.as<Load>();
-    compare_names(op->name, e->name);
-    compare_expr(e->predicate, op->predicate);
-    compare_expr(e->index, op->index);
+void IRComparer::visit(const Load *op, const Expr &e) {
+    const Load *node = expr_.as<Load>();
+    compare_node_refs(op->buffer_var, node->buffer_var);
+    compare_expr(node->index, op->index);
+    compare_expr(node->predicate, op->predicate);
 }
 
-void IRComparer::visit(const Ramp *op) {
-    const Ramp *e = expr.as<Ramp>();
+void IRComparer::visit(const Ramp *op, const Expr &e) {
+    const Ramp *node = expr_.as<Ramp>();
     // No need to compare width because we already compared types
-    compare_expr(e->base, op->base);
-    compare_expr(e->stride, op->stride);
+    compare_expr(node->base, op->base);
+    compare_expr(node->stride, op->stride);
 }
 
-void IRComparer::visit(const Broadcast *op) {
-    const Broadcast *e = expr.as<Broadcast>();
-    compare_expr(e->value, op->value);
+void IRComparer::visit(const Broadcast *op, const Expr &e) {
+    const Broadcast *node = expr_.as<Broadcast>();
+    compare_expr(node->value, op->value);
 }
 
-void IRComparer::visit(const Call *op) {
-    const Call *e = expr.as<Call>();
+void IRComparer::visit(const Call *op, const Expr &e) {
+    const Call *node = expr_.as<Call>();
 
-    compare_names(e->name, op->name);
-    compare_scalar(e->call_type, op->call_type);
-    compare_scalar(e->value_index, op->value_index);
-    compare_expr_vector(e->args, op->args);
+    compare_names(node->name, op->name);
+    compare_scalar(node->call_type, op->call_type);
+    compare_scalar(node->value_index, op->value_index);
+    compare_expr_vector(node->args, op->args);
+    compare_node_refs(node->func, op->func);
 }
 
-void IRComparer::visit(const Let *op) {
-    const Let *e = expr.as<Let>();
+void IRComparer::visit(const Let *op, const Expr &e) {
+    const Let *node = expr_.as<Let>();
 
-    compare_names(e->name, op->name);
-    compare_expr(e->value, op->value);
-    compare_expr(e->body, op->body);
+    compare_node_refs(node->var, op->var);
+    compare_expr(node->value, op->value);
+    compare_expr(node->body, op->body);
 }
 
-void IRComparer::visit(const LetStmt *op) {
-    const LetStmt *s = stmt.as<LetStmt>();
+void IRComparer::visit(const LetStmt *op, const Stmt &s) {
+    const LetStmt *node = stmt_.as<LetStmt>();
 
-    compare_names(s->name, op->name);
-    compare_expr(s->value, op->value);
-    compare_stmt(s->body, op->body);
+    compare_node_refs(node->var, op->var);
+    compare_expr(node->value, op->value);
+    compare_stmt(node->body, op->body);
 }
 
-void IRComparer::visit(const AssertStmt *op) {
-    const AssertStmt *s = stmt.as<AssertStmt>();
 
-    compare_expr(s->condition, op->condition);
-    compare_expr(s->message, op->message);
+void IRComparer::visit(const AttrStmt *op, const Stmt &s) {
+    const AttrStmt *node = stmt_.as<AttrStmt>();
+
+    compare_node_refs(node->node, op->node);
+    compare_names(node->attr_key, op->attr_key);
+    compare_expr(node->value, op->value);
+    compare_stmt(node->body, op->body);
 }
 
-void IRComparer::visit(const ProducerConsumer *op) {
-    const ProducerConsumer *s = stmt.as<ProducerConsumer>();
+void IRComparer::visit(const AssertStmt *op, const Stmt &s) {
+    const AssertStmt *node = stmt_.as<AssertStmt>();
 
-    compare_names(s->name, op->name);
-    compare_scalar(s->is_producer, op->is_producer);
-    compare_stmt(s->body, op->body);
+    compare_expr(node->condition, op->condition);
+    compare_expr(node->message, op->message);
 }
 
-void IRComparer::visit(const For *op) {
-    const For *s = stmt.as<For>();
+void IRComparer::visit(const ProducerConsumer *op, const Stmt &s) {
+    const ProducerConsumer *node = stmt_.as<ProducerConsumer>();
 
-    compare_names(s->name, op->name);
-    compare_scalar(s->for_type, op->for_type);
-    compare_expr(s->min, op->min);
-    compare_expr(s->extent, op->extent);
-    compare_stmt(s->body, op->body);
+    compare_node_refs(node->func, op->func);
+    compare_scalar(node->is_producer, op->is_producer);
+    compare_stmt(node->body, op->body);
 }
 
-void IRComparer::visit(const Store *op) {
-    const Store *s = stmt.as<Store>();
+void IRComparer::visit(const For *op, const Stmt &s) {
+    const For *node = stmt_.as<For>();
 
-    compare_names(s->name, op->name);
-
-    compare_expr(s->predicate, op->predicate);
-    compare_expr(s->value, op->value);
-    compare_expr(s->index, op->index);
+    compare_node_refs(node->loop_var, op->loop_var);
+    compare_scalar(node->for_type, op->for_type);
+    compare_expr(node->min, op->min);
+    compare_expr(node->extent, op->extent);
+    compare_stmt(node->body, op->body);
 }
 
-void IRComparer::visit(const Provide *op) {
-    const Provide *s = stmt.as<Provide>();
+void IRComparer::visit(const Store *op, const Stmt &s) {
+    const Store *node = stmt_.as<Store>();
 
-    compare_names(s->name, op->name);
-    compare_expr_vector(s->args, op->args);
-    compare_expr_vector(s->values, op->values);
+    compare_node_refs(node->buffer_var, op->buffer_var);
+
+    compare_expr(node->value, op->value);
+    compare_expr(node->index, op->index);
+    compare_expr(node->predicate, op->predicate);
 }
 
-void IRComparer::visit(const Allocate *op) {
-    const Allocate *s = stmt.as<Allocate>();
+void IRComparer::visit(const Provide *op, const Stmt &s) {
+    const Provide *node = stmt_.as<Provide>();
 
-    compare_names(s->name, op->name);
-    compare_expr_vector(s->extents, op->extents);
-    compare_stmt(s->body, op->body);
-    compare_expr(s->condition, op->condition);
-    compare_expr(s->new_expr, op->new_expr);
-    compare_names(s->free_function, op->free_function);
+    compare_node_refs(node->func, op->func);
+    compare_scalar(node->value_index, op->value_index);
+    compare_expr_vector(node->args, op->args);
+    compare_expr(node->value, op->value);
 }
 
-void IRComparer::visit(const Realize *op) {
-    const Realize *s = stmt.as<Realize>();
+void IRComparer::visit(const Allocate *op, const Stmt &s) {
+    const Allocate *node = stmt_.as<Allocate>();
 
-    compare_names(s->name, op->name);
-    compare_scalar(s->types.size(), op->types.size());
-    compare_scalar(s->bounds.size(), op->bounds.size());
-    for (size_t i = 0; (result == Equal) && (i < s->types.size()); i++) {
-        compare_types(s->types[i], op->types[i]);
+    compare_node_refs(node->buffer_var, op->buffer_var);
+    compare_expr_vector(node->extents, op->extents);
+    compare_stmt(node->body, op->body);
+    compare_expr(node->condition, op->condition);
+    compare_expr(node->new_expr, op->new_expr);
+    compare_names(node->free_function, op->free_function);
+}
+
+void IRComparer::visit(const Realize *op, const Stmt &s) {
+    const Realize *node = stmt_.as<Realize>();
+
+    compare_node_refs(node->func, op->func);
+    compare_scalar(node->value_index, op->value_index);
+    compare_types(node->type, op->type);
+    compare_scalar(node->bounds.size(), op->bounds.size());
+
+    for (size_t i = 0; (result == Equal) && (i < node->bounds.size()); i++) {
+        compare_expr(node->bounds[i]->min, op->bounds[i]->min);
+        compare_expr(node->bounds[i]->extent, op->bounds[i]->extent);
     }
-    for (size_t i = 0; (result == Equal) && (i < s->bounds.size()); i++) {
-        compare_expr(s->bounds[i].min, op->bounds[i].min);
-        compare_expr(s->bounds[i].extent, op->bounds[i].extent);
+    compare_stmt(node->body, op->body);
+    compare_expr(node->condition, op->condition);
+}
+
+void IRComparer::visit(const Prefetch *op, const Stmt& stmt) {
+    const Prefetch *node = stmt_.as<Prefetch>();
+    compare_node_refs(node->func, op->func);
+    compare_scalar(node->value_index, op->value_index);
+    compare_types(node->type, op->type);
+    compare_scalar(node->bounds.size(), op->bounds.size());
+    for (size_t i = 0; (result == Equal) && (i < node->bounds.size()); i++) {
+        compare_expr(node->bounds[i]->min, op->bounds[i]->min);
+        compare_expr(node->bounds[i]->extent, op->bounds[i]->extent);
     }
-    compare_stmt(s->body, op->body);
-    compare_expr(s->condition, op->condition);
 }
 
-void IRComparer::visit(const Block *op) {
-    const Block *s = stmt.as<Block>();
+void IRComparer::visit(const Block *op, const Stmt &s) {
+    const Block *node = stmt_.as<Block>();
 
-    compare_stmt(s->first, op->first);
-    compare_stmt(s->rest, op->rest);
+    compare_stmt(node->first, op->first);
+    compare_stmt(node->rest, op->rest);
 }
 
-void IRComparer::visit(const Free *op) {
-    const Free *s = stmt.as<Free>();
+void IRComparer::visit(const Free *op, const Stmt &s) {
+    const Free *node = stmt_.as<Free>();
 
-    compare_names(s->name, op->name);
+    compare_node_refs(node->buffer_var, op->buffer_var);
 }
 
-void IRComparer::visit(const IfThenElse *op) {
-    const IfThenElse *s = stmt.as<IfThenElse>();
+void IRComparer::visit(const IfThenElse *op, const Stmt &s) {
+    const IfThenElse *node = stmt_.as<IfThenElse>();
 
-    compare_expr(s->condition, op->condition);
-    compare_stmt(s->then_case, op->then_case);
-    compare_stmt(s->else_case, op->else_case);
+    compare_expr(node->condition, op->condition);
+    compare_stmt(node->then_case, op->then_case);
+    compare_stmt(node->else_case, op->else_case);
 }
 
-void IRComparer::visit(const Evaluate *op) {
-    const Evaluate *s = stmt.as<Evaluate>();
+void IRComparer::visit(const Evaluate *op, const Stmt &s) {
+    const Evaluate *node = stmt_.as<Evaluate>();
 
-    compare_expr(s->value, op->value);
+    compare_expr(node->value, op->value);
 }
 
-void IRComparer::visit(const Shuffle *op) {
+void IRComparer::visit(const Shuffle *op, const Expr &expr) {
     const Shuffle *e = expr.as<Shuffle>();
 
     compare_expr_vector(e->vectors, op->vectors);
-
-    compare_scalar(e->indices.size(), op->indices.size());
-    for (size_t i = 0; (i < e->indices.size()) && result == Equal; i++) {
-        compare_scalar(e->indices[i], op->indices[i]);
-    }
-}
-
-void IRComparer::visit(const Prefetch *op) {
-    const Prefetch *s = expr.as<Prefetch>();
-
-    compare_names(s->name, op->name);
-    compare_scalar(s->bounds.size(), op->bounds.size());
-    for (size_t i = 0; (result == Equal) && (i < s->bounds.size()); i++) {
-        compare_expr(s->bounds[i].min, op->bounds[i].min);
-        compare_expr(s->bounds[i].extent, op->bounds[i].extent);
-    }
+    compare_expr_vector(e->indices, op->indices);
 }
 
 } // namespace
@@ -515,7 +540,7 @@ IRComparer::CmpResult flip_result(IRComparer::CmpResult r) {
     return IRComparer::Unknown;
 }
 
-void check_equal(const Expr &a, const Expr &b) {
+void check_equal(Expr a, Expr b) {
     IRCompareCache cache(5);
     IRComparer::CmpResult r = IRComparer(&cache).compare_expr(a, b);
     internal_assert(r == IRComparer::Equal)
@@ -525,7 +550,7 @@ void check_equal(const Expr &a, const Expr &b) {
         << "\nand\n" << b << "\n";
 }
 
-void check_not_equal(const Expr &a, const Expr &b) {
+void check_not_equal(Expr a, Expr b) {
     IRCompareCache cache(5);
     IRComparer::CmpResult r1 = IRComparer(&cache).compare_expr(a, b);
     IRComparer::CmpResult r2 = IRComparer(&cache).compare_expr(b, a);

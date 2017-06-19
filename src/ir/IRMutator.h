@@ -6,6 +6,7 @@
  */
 
 #include "IRVisitor.h"
+#include <unordered_map>
 
 namespace Halide {
 namespace Internal {
@@ -28,11 +29,10 @@ public:
      * these in your subclass to mutate sub-expressions and
      * sub-statements.
      */
-    EXPORT virtual Expr mutate(Expr expr);
-    EXPORT virtual Stmt mutate(Stmt stmt);
+    virtual EXPORT Expr mutate(Expr expr);
+    virtual EXPORT Stmt mutate(Stmt stmt);
 
 protected:
-
     /** visit methods that take Exprs assign to this to return their
      * new value */
     Expr expr;
@@ -41,48 +41,50 @@ protected:
      * new value */
     Stmt stmt;
 
-    EXPORT virtual void visit(const IntImm *);
-    EXPORT virtual void visit(const UIntImm *);
-    EXPORT virtual void visit(const FloatImm *);
-    EXPORT virtual void visit(const StringImm *);
-    EXPORT virtual void visit(const Cast *);
-    EXPORT virtual void visit(const Variable *);
-    EXPORT virtual void visit(const Add *);
-    EXPORT virtual void visit(const Sub *);
-    EXPORT virtual void visit(const Mul *);
-    EXPORT virtual void visit(const Div *);
-    EXPORT virtual void visit(const Mod *);
-    EXPORT virtual void visit(const Min *);
-    EXPORT virtual void visit(const Max *);
-    EXPORT virtual void visit(const EQ *);
-    EXPORT virtual void visit(const NE *);
-    EXPORT virtual void visit(const LT *);
-    EXPORT virtual void visit(const LE *);
-    EXPORT virtual void visit(const GT *);
-    EXPORT virtual void visit(const GE *);
-    EXPORT virtual void visit(const And *);
-    EXPORT virtual void visit(const Or *);
-    EXPORT virtual void visit(const Not *);
-    EXPORT virtual void visit(const Select *);
-    EXPORT virtual void visit(const Load *);
-    EXPORT virtual void visit(const Ramp *);
-    EXPORT virtual void visit(const Broadcast *);
-    EXPORT virtual void visit(const Call *);
-    EXPORT virtual void visit(const Let *);
-    EXPORT virtual void visit(const LetStmt *);
-    EXPORT virtual void visit(const AssertStmt *);
-    EXPORT virtual void visit(const ProducerConsumer *);
-    EXPORT virtual void visit(const For *);
-    EXPORT virtual void visit(const Store *);
-    EXPORT virtual void visit(const Provide *);
-    EXPORT virtual void visit(const Allocate *);
-    EXPORT virtual void visit(const Free *);
-    EXPORT virtual void visit(const Realize *);
-    EXPORT virtual void visit(const Block *);
-    EXPORT virtual void visit(const IfThenElse *);
-    EXPORT virtual void visit(const Evaluate *);
-    EXPORT virtual void visit(const Shuffle *);
-    EXPORT virtual void visit(const Prefetch *);
+protected:
+    EXPORT virtual void visit(const IntImm *, const Expr &);
+    EXPORT virtual void visit(const UIntImm *, const Expr &);
+    EXPORT virtual void visit(const FloatImm *, const Expr &);
+    EXPORT virtual void visit(const StringImm *, const Expr &);
+    EXPORT virtual void visit(const Cast *, const Expr &);
+    EXPORT virtual void visit(const Variable *, const Expr &);
+    EXPORT virtual void visit(const Add *, const Expr &);
+    EXPORT virtual void visit(const Sub *, const Expr &);
+    EXPORT virtual void visit(const Mul *, const Expr &);
+    EXPORT virtual void visit(const Div *, const Expr &);
+    EXPORT virtual void visit(const Mod *, const Expr &);
+    EXPORT virtual void visit(const Min *, const Expr &);
+    EXPORT virtual void visit(const Max *, const Expr &);
+    EXPORT virtual void visit(const EQ *, const Expr &);
+    EXPORT virtual void visit(const NE *, const Expr &);
+    EXPORT virtual void visit(const LT *, const Expr &);
+    EXPORT virtual void visit(const LE *, const Expr &);
+    EXPORT virtual void visit(const GT *, const Expr &);
+    EXPORT virtual void visit(const GE *, const Expr &);
+    EXPORT virtual void visit(const And *, const Expr &);
+    EXPORT virtual void visit(const Or *, const Expr &);
+    EXPORT virtual void visit(const Not *, const Expr &);
+    EXPORT virtual void visit(const Select *, const Expr &);
+    EXPORT virtual void visit(const Load *, const Expr &);
+    EXPORT virtual void visit(const Ramp *, const Expr &);
+    EXPORT virtual void visit(const Broadcast *, const Expr &);
+    EXPORT virtual void visit(const Call *, const Expr &);
+    EXPORT virtual void visit(const Let *, const Expr &);
+    EXPORT virtual void visit(const LetStmt *, const Stmt &);
+    EXPORT virtual void visit(const AttrStmt *, const Stmt &);
+    EXPORT virtual void visit(const AssertStmt *, const Stmt &);
+    EXPORT virtual void visit(const ProducerConsumer *, const Stmt &);
+    EXPORT virtual void visit(const For *, const Stmt &);
+    EXPORT virtual void visit(const Store *, const Stmt &);
+    EXPORT virtual void visit(const Provide *, const Stmt &);
+    EXPORT virtual void visit(const Allocate *, const Stmt &);
+    EXPORT virtual void visit(const Free *, const Stmt &);
+    EXPORT virtual void visit(const Realize *, const Stmt &);
+    EXPORT virtual void visit(const Prefetch *, const Stmt &);
+    EXPORT virtual void visit(const Block *, const Stmt &);
+    EXPORT virtual void visit(const IfThenElse *, const Stmt &);
+    EXPORT virtual void visit(const Evaluate *, const Stmt &);
+    EXPORT virtual void visit(const Shuffle *, const Expr &);
 };
 
 
@@ -91,8 +93,8 @@ protected:
  * them. */
 class IRGraphMutator : public IRMutator {
 protected:
-    std::map<Expr, Expr, ExprCompare> expr_replacements;
-    std::map<Stmt, Stmt, Stmt::Compare> stmt_replacements;
+    std::unordered_map<Expr, Expr, ExprHash, ExprEqual> expr_replacements;
+    std::unordered_map<Stmt, Stmt> stmt_replacements;
 
 public:
     EXPORT Stmt mutate(Stmt s);
