@@ -7,8 +7,8 @@
 
 #include <cmath>
 
-#include "IR.h"
-#include "Bounds.h"
+#include "ir/IR.h"
+#include "Interval.h"
 #include "ModulusRemainder.h"
 
 namespace Halide {

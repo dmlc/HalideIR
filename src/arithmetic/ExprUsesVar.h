@@ -5,8 +5,8 @@
  * Defines a method to determine if an expression depends on some variables.
  */
 
-#include "IR.h"
-#include "IRVisitor.h"
+#include "ir/IR.h"
+#include "ir/IRVisitor.h"
 #include "Scope.h"
 
 namespace Halide {
@@ -19,26 +19,12 @@ class ExprUsesVars : public IRGraphVisitor {
     const Scope<T> &vars;
     Scope<Expr> scope;
 
-    void visit_name(const std::string &name) {
-        if (vars.contains(name)) {
+    void visit(const Variable *v, const Expr&) {
+        if (vars.contains(v)) {
             result = true;
-        } else if (scope.contains(name)) {
-            include(scope.get(name));
+        } else if (scope.contains(v)) {
+            include(scope.get(v));
         }
-    }
-
-    void visit(const Variable *op) {
-        visit_name(op->name);
-    }
-
-    void visit(const Load *op) {
-        visit_name(op->name);
-        IRGraphVisitor::visit(op);
-    }
-
-    void visit(const Store *op) {
-        visit_name(op->name);
-        IRGraphVisitor::visit(op);
     }
 public:
     ExprUsesVars(const Scope<T> &v, const Scope<Expr> *s = nullptr) : vars(v), result(false) {
@@ -49,7 +35,7 @@ public:
 
 /** Test if a statement or expression references the given variable. */
 template<typename StmtOrExpr>
-inline bool stmt_or_expr_uses_var(StmtOrExpr e, const std::string &v) {
+inline bool stmt_or_expr_uses_var(StmtOrExpr e, const Variable* v) {
     Scope<int> s;
     s.push(v, 0);
     ExprUsesVars<int> uses(s);
@@ -70,12 +56,12 @@ inline bool stmt_or_expr_uses_vars(StmtOrExpr e, const Scope<T> &v,
 }
 
 /** Test if an expression references the given variable. */
-inline bool expr_uses_var(Expr e, const std::string &v) {
+inline bool expr_uses_var(Expr e, const Variable* v) {
     return stmt_or_expr_uses_var(e, v);
 }
 
 /** Test if a statement references the given variable. */
-inline bool stmt_uses_var(Stmt s, const std::string &v) {
+inline bool stmt_uses_var(Stmt s, const Variable* v) {
     return stmt_or_expr_uses_var(s, v);
 }
 

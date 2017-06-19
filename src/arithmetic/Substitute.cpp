@@ -1,7 +1,7 @@
 #include "Substitute.h"
 #include "Scope.h"
-#include "IRMutator.h"
-#include "IREquality.h"
+#include "ir/IRMutator.h"
+#include "ir/IREquality.h"
 
 namespace Halide {
 namespace Internal {
@@ -10,12 +10,14 @@ using std::map;
 using std::string;
 
 class Substitute : public IRMutator {
-    const map<string, Expr> &replace;
-    Scope<int> hidden;
+    /* We don't need a Scope to check if variable inside let statements has
+       same name as the first argument because we use variable pointer to
+       match. */
+    const map<const Variable*, Expr> &replace;
 
-    Expr find_replacement(const string &s) {
-        map<string, Expr>::const_iterator iter = replace.find(s);
-        if (iter != replace.end() && !hidden.contains(s)) {
+    Expr find_replacement(const Variable* s) {
+        map<const Variable*, Expr>::const_iterator iter = replace.find(s);
+        if (iter != replace.end()) {
             return iter->second;
         } else {
             return Expr();
@@ -23,86 +25,79 @@ class Substitute : public IRMutator {
     }
 
 public:
-    Substitute(const map<string, Expr> &m) : replace(m) {}
+    Substitute(const map<const Variable*, Expr> &m) : replace(m) {}
 
     using IRMutator::visit;
 
-    void visit(const Variable *v) {
-        Expr r = find_replacement(v->name);
+    void visit(const Variable *v, const Expr &e) {
+        Expr r = find_replacement(v);
         if (r.defined()) {
             expr = r;
         } else {
-            expr = v;
+            expr = e;
         }
     }
 
-    void visit(const Let *op) {
+    void visit(const Let *op, const Expr &e) {
         Expr new_value = mutate(op->value);
-        hidden.push(op->name, 0);
         Expr new_body = mutate(op->body);
-        hidden.pop(op->name);
 
         if (new_value.same_as(op->value) &&
             new_body.same_as(op->body)) {
-            expr = op;
+          expr = e;
         } else {
-            expr = Let::make(op->name, new_value, new_body);
+          expr = Let::make(op->var, new_value, new_body);
         }
     }
 
-    void visit(const LetStmt *op) {
+    void visit(const LetStmt *op, const Stmt &s) {
         Expr new_value = mutate(op->value);
-        hidden.push(op->name, 0);
         Stmt new_body = mutate(op->body);
-        hidden.pop(op->name);
 
         if (new_value.same_as(op->value) &&
             new_body.same_as(op->body)) {
-            stmt = op;
+          stmt = s;
         } else {
-            stmt = LetStmt::make(op->name, new_value, new_body);
+          stmt = LetStmt::make(op->var, new_value, new_body);
         }
     }
 
-    void visit(const For *op) {
-
+    void visit(const For *op, const Stmt &s) {
         Expr new_min = mutate(op->min);
         Expr new_extent = mutate(op->extent);
-        hidden.push(op->name, 0);
         Stmt new_body = mutate(op->body);
-        hidden.pop(op->name);
 
         if (new_min.same_as(op->min) &&
             new_extent.same_as(op->extent) &&
             new_body.same_as(op->body)) {
-            stmt = op;
+          stmt = s;
         } else {
-            stmt = For::make(op->name, new_min, new_extent, op->for_type, op->device_api, new_body);
+          stmt = For::make(op->loop_var, new_min, new_extent, op->for_type, op->device_api, new_body);
         }
     }
 
 };
 
-Expr substitute(const string &name, const Expr &replacement, const Expr &expr) {
-    map<string, Expr> m;
-    m[name] = replacement;
+Expr substitute(const Variable* var, Expr replacement, Expr expr) {
+    map<const Variable*, Expr> m;
+    m[var] = replacement;
     Substitute s(m);
     return s.mutate(expr);
 }
 
-Stmt substitute(const string &name, const Expr &replacement, const Stmt &stmt) {
-    map<string, Expr> m;
-    m[name] = replacement;
+Stmt substitute(const Variable* var, Expr replacement, Stmt stmt) {
+    map<const Variable*, Expr> m;
+    m[var] = replacement;
     Substitute s(m);
     return s.mutate(stmt);
 }
 
-Expr substitute(const map<string, Expr> &m, const Expr &expr) {
+Expr substitute(const map<const Variable*, Expr> &m, Expr expr) {
     Substitute s(m);
     return s.mutate(expr);
 }
 
-Stmt substitute(const map<string, Expr> &m, const Stmt &stmt) {
+Stmt substitute(const map<const Variable*, Expr> &m, Stmt stmt) {
     Substitute s(m);
     return s.mutate(stmt);
 }
@@ -123,14 +118,14 @@ public:
     }
 };
 
-Expr substitute(const Expr &find, const Expr &replacement, const Expr &expr) {
+Expr substitute(Expr find, Expr replacement, Expr expr) {
     SubstituteExpr s;
     s.find = find;
     s.replacement = replacement;
     return s.mutate(expr);
 }
 
-Stmt substitute(const Expr &find, const Expr &replacement, const Stmt &stmt) {
+Stmt substitute(Expr find, Expr replacement, Stmt stmt) {
     SubstituteExpr s;
     s.find = find;
     s.replacement = replacement;
@@ -139,22 +134,22 @@ Stmt substitute(const Expr &find, const Expr &replacement, const Stmt &stmt) {
 
 /** Substitute an expr for a var in a graph. */
 class GraphSubstitute : public IRGraphMutator {
-    string var;
+    const Variable* var;
     Expr value;
 
     using IRGraphMutator::visit;
 
-    void visit(const Variable *op) {
-        if (op->name == var) {
-            expr = value;
+    void visit(const Variable *op, const Expr &e) {
+        if (op == var) {
+          expr = value;
         } else {
-            expr = op;
+          expr = e;
         }
     }
 
 public:
 
-    GraphSubstitute(const string &var, const Expr &value) : var(var), value(value) {}
+    GraphSubstitute(const Variable* var, Expr value) : var(var), value(value) {}
 };
 
 /** Substitute an Expr for another Expr in a graph. Unlike substitute,
@@ -170,22 +165,22 @@ public:
         return IRGraphMutator::mutate(e);
     }
 
-    GraphSubstituteExpr(const Expr &find, const Expr &replace) : find(find), replace(replace) {}
+    GraphSubstituteExpr(Expr find, Expr replace) : find(find), replace(replace) {}
 };
 
-Expr graph_substitute(const string &name, const Expr &replacement, const Expr &expr) {
-    return GraphSubstitute(name, replacement).mutate(expr);
+Expr graph_substitute(const Variable* var, Expr replacement, Expr expr) {
+    return GraphSubstitute(var, replacement).mutate(expr);
 }
 
-Stmt graph_substitute(const string &name, const Expr &replacement, const Stmt &stmt) {
-    return GraphSubstitute(name, replacement).mutate(stmt);
+Stmt graph_substitute(const Variable* var, Expr replacement, Stmt stmt) {
+    return GraphSubstitute(var, replacement).mutate(stmt);
 }
 
-Expr graph_substitute(const Expr &find, const Expr &replacement, const Expr &expr) {
+Expr graph_substitute(Expr find, Expr replacement, Expr expr) {
     return GraphSubstituteExpr(find, replacement).mutate(expr);
 }
 
-Stmt graph_substitute(const Expr &find, const Expr &replacement, const Stmt &stmt) {
+Stmt graph_substitute(Expr find, Expr replacement, Stmt stmt) {
     return GraphSubstituteExpr(find, replacement).mutate(stmt);
 }
 
@@ -193,18 +188,18 @@ class SubstituteInAllLets : public IRGraphMutator {
 
     using IRGraphMutator::visit;
 
-    void visit(const Let *op) {
+    void visit(const Let *op, const Expr &) {
         Expr value = mutate(op->value);
         Expr body = mutate(op->body);
-        expr = graph_substitute(op->name, value, body);
+        expr = graph_substitute(op->var, value, body);
     }
 };
 
-Expr substitute_in_all_lets(const Expr &expr) {
+Expr substitute_in_all_lets(Expr expr) {
     return SubstituteInAllLets().mutate(expr);
 }
 
-Stmt substitute_in_all_lets(const Stmt &stmt) {
+Stmt substitute_in_all_lets(Stmt stmt) {
     return SubstituteInAllLets().mutate(stmt);
 }
 

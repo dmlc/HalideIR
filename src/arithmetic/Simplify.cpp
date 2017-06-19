@@ -5,16 +5,14 @@
 #include <stdio.h>
 
 #include "Simplify.h"
-#include "IROperator.h"
-#include "IREquality.h"
-#include "IRPrinter.h"
-#include "IRMutator.h"
+#include "ir/IROperator.h"
+#include "ir/IREquality.h"
+#include "ir/IRPrinter.h"
+#include "ir/IRMutator.h"
 #include "Scope.h"
-#include "Var.h"
-#include "Debug.h"
+#include "base/Debug.h"
 #include "ModulusRemainder.h"
 #include "Substitute.h"
-#include "Bounds.h"
 #include "Deinterleave.h"
 #include "ExprUsesVar.h"
 
@@ -50,21 +48,21 @@ bool is_simple_const(const Expr &e) {
 }
 
 // If the Expr is (var relop const) or (const relop var),
-// fill in the var name and return true.
+// fill in the var and return true.
 template<typename RelOp>
-bool is_var_relop_simple_const(const Expr &e, string* name) {
+bool is_var_relop_simple_const(const Expr &e, const Variable** ret) {
     if (const RelOp *r = e.as<RelOp>()) {
         if (is_simple_const(r->b)) {
             const Variable *v = r->a.template as<Variable>();
             if (v) {
-                *name = v->name;
+                *ret = v;
                 return true;
             }
         }
         else if (is_simple_const(r->a)) {
             const Variable *v = r->b.template as<Variable>();
             if (v) {
-                *name = v->name;
+                *ret = v;
                 return true;
             }
         }
@@ -72,11 +70,11 @@ bool is_var_relop_simple_const(const Expr &e, string* name) {
     return false;
 }
 
-bool is_var_simple_const_comparison(const Expr &e, string* name) {
+bool is_var_simple_const_comparison(const Expr &e, const Variable** ret) {
     // It's not clear if GT, LT, etc would be useful
     // here; leaving them out until proven otherwise.
-    return is_var_relop_simple_const<EQ>(e, name) ||
-           is_var_relop_simple_const<NE>(e, name);
+    return is_var_relop_simple_const<EQ>(e, ret) ||
+           is_var_relop_simple_const<NE>(e, ret);
 }
 
 // Returns true iff t is a scalar integral type where overflow is undefined
@@ -138,23 +136,14 @@ bool propagate_indeterminate_expression(const Expr &e0, const Expr &e1, const Ex
 class ExprIsPure : public IRVisitor {
     using IRVisitor::visit;
 
-    void visit(const Call *op) {
+    void visit(const Call *op, const Expr &e) {
         if (!op->is_pure()) {
             result = false;
         } else {
-            IRVisitor::visit(op);
+            IRVisitor::visit(op, e);
         }
     }
 
-    void visit(const Load *op) {
-        if (!op->image.defined() && !op->param.defined()) {
-            // It's a load from an internal buffer, which could
-            // mutate.
-            result = false;
-        } else {
-            IRVisitor::visit(op);
-        }
-    }
 public:
     bool result = true;
 };
@@ -184,7 +173,7 @@ public:
             int64_t i_min, i_max;
             if (const_int(iter.value().min, &i_min) &&
                 const_int(iter.value().max, &i_max)) {
-                bounds_info.push(iter.name(), { i_min, i_max });
+                bounds_info.push(iter.var(), { i_min, i_max });
             }
         }
 
@@ -235,27 +224,6 @@ private:
     Scope<VarInfo> var_info;
     Scope<pair<int64_t, int64_t>> bounds_info;
     Scope<ModulusRemainder> alignment_info;
-
-    // If we encounter a reference to a buffer (a Load, Store, Call,
-    // or Provide), there's an implicit dependence on some associated
-    // symbols.
-    void found_buffer_reference(const string &name, size_t dimensions = 0) {
-        for (size_t i = 0; i < dimensions; i++) {
-            string stride = name + ".stride." + std::to_string(i);
-            if (var_info.contains(stride)) {
-                var_info.ref(stride).old_uses++;
-            }
-
-            string min = name + ".min." + std::to_string(i);
-            if (var_info.contains(min)) {
-                var_info.ref(min).old_uses++;
-            }
-        }
-
-        if (var_info.contains(name)) {
-            var_info.ref(name).old_uses++;
-        }
-    }
 
     using IRMutator::visit;
 
@@ -309,8 +277,8 @@ private:
             *min_val = *max_val = *i;
             return true;
         } else if (const Variable *v = e.as<Variable>()) {
-            if (bounds_info.contains(v->name)) {
-                pair<int64_t, int64_t> b = bounds_info.get(v->name);
+            if (bounds_info.contains(v)) {
+                pair<int64_t, int64_t> b = bounds_info.get(v);
                 *min_val = b.first;
                 *max_val = b.second;
                 return true;
@@ -464,7 +432,7 @@ private:
         return is_round_up_div(mul->a, *factor);
     }
 
-    void visit(const Cast *op) {
+    void visit(const Cast *op, const Expr & self) {
         Expr value = mutate(op->value);
         if (propagate_indeterminate_expression(value, op->type, &expr)) {
             return;
@@ -550,37 +518,37 @@ private:
             // can cancel, pull the addition outside of the cast.
             expr = mutate(Cast::make(op->type, add->a) + add->b);
         } else if (value.same_as(op->value)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Cast::make(op->type, value);
         }
     }
 
-    void visit(const Variable *op) {
-        if (var_info.contains(op->name)) {
-            VarInfo &info = var_info.ref(op->name);
+    void visit(const Variable *op, const Expr &self) {
+        if (var_info.contains(op)) {
+            VarInfo &info = var_info.ref(op);
 
             // if replacement is defined, we should substitute it in (unless
             // it's a var that has been hidden by a nested scope).
             if (info.replacement.defined()) {
-                internal_assert(info.replacement.type() == op->type) << "Cannot replace variable " << op->name
+                internal_assert(info.replacement.type() == op->type) << "Cannot replace variable " << op->name_hint
                     << " of type " << op->type << " with expression of type " << info.replacement.type() << "\n";
                 expr = info.replacement;
                 info.new_uses++;
             } else {
                 // This expression was not something deemed
                 // substitutable - no replacement is defined.
-                expr = op;
+                expr = self;
                 info.old_uses++;
             }
         } else {
             // We never encountered a let that defines this var. Must
             // be a uniform. Don't touch it.
-            expr = op;
+            expr = self;
         }
     }
 
-    void visit(const Add *op) {
+    void visit(const Add *op, const Expr &self) {
         int64_t ia = 0, ib = 0, ic = 0;
         uint64_t ua = 0, ub = 0;
         double fa = 0.0f, fb = 0.0f;
@@ -681,7 +649,7 @@ private:
                    shuffle_a->is_slice() &&
                    shuffle_b->is_slice()) {
             if (a.same_as(op->a) && b.same_as(op->b)) {
-                expr = hoist_slice_vector<Add>(op);
+                expr = hoist_slice_vector<Add>(self);
             } else {
                 expr = hoist_slice_vector<Add>(Add::make(a, b));
             }
@@ -946,13 +914,13 @@ private:
             expr = mutate((mul_a->a * ratio + mul_b->a) * mul_b->b);
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
             // If we've made no changes, and can't find a rule to apply, return the operator unchanged.
-            expr = op;
+            expr = self;
         } else {
             expr = Add::make(a, b);
         }
     }
 
-    void visit(const Sub *op) {
+    void visit(const Sub *op, const Expr &self) {
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
@@ -1437,13 +1405,13 @@ private:
             Expr x = add_a_a->a, a = add_a_a->b, b = sub_b_a->b, c = div_a->b;
             expr = mutate((b - (x + (a % c))%c + (a + c - 1))/c);
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Sub::make(a, b);
         }
     }
 
-    void visit(const Mul *op) {
+    void visit(const Mul *op, const Expr &self) {
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
@@ -1503,7 +1471,7 @@ private:
                    shuffle_a->is_slice() &&
                    shuffle_b->is_slice()) {
             if (a.same_as(op->a) && b.same_as(op->b)) {
-                expr = hoist_slice_vector<Mul>(op);
+                expr = hoist_slice_vector<Mul>(self);
             } else {
                 expr = hoist_slice_vector<Mul>(Mul::make(a, b));
             }
@@ -1540,13 +1508,13 @@ private:
             // min(x, y) * max(y, x) -> x*y
             expr = mutate(min_a->a * min_a->b);
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Mul::make(a, b);
         }
     }
 
-    void visit(const Div *op) {
+    void visit(const Div *op, const Expr &self) {
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
@@ -1963,13 +1931,13 @@ private:
             // x / 2 -> x * 0.5
             expr = mutate(a * (make_one(b.type()) / b));
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Div::make(a, b);
         }
     }
 
-    void visit(const Mod *op) {
+    void visit(const Mod *op, const Expr &self) {
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
@@ -2100,13 +2068,13 @@ private:
             Expr new_base = make_const(t, mod_imp((int64_t)mod_rem.remainder, ib));
             expr = mutate(Ramp::make(new_base, ramp_a->stride, ramp_a->lanes) % b);
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Mod::make(a, b);
         }
     }
 
-    void visit(const Min *op) {
+    void visit(const Min *op, const Expr &self) {
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
@@ -2212,7 +2180,7 @@ private:
         } else if (no_overflow(op->type) &&
                    ramp_a &&
                    broadcast_b &&
-                   const_int_bounds(ramp_a, &ramp_min, &ramp_max) &&
+                   const_int_bounds(a, &ramp_min, &ramp_max) &&
                    const_int(broadcast_b->value, &ic)) {
             // min(ramp(a, b, n), broadcast(c, n))
             if (ramp_min <= ic && ramp_max <= ic) {
@@ -2474,7 +2442,7 @@ private:
                    shuffle_a->is_slice() &&
                    shuffle_b->is_slice()) {
             if (a.same_as(op->a) && b.same_as(op->b)) {
-                expr = hoist_slice_vector<Min>(op);
+                expr = hoist_slice_vector<Min>(self);
             } else {
                 expr = hoist_slice_vector<Min>(min(a, b));
             }
@@ -2491,13 +2459,13 @@ private:
                                  min(select_a->true_value, select_b->true_value),
                                  min(select_a->false_value, select_b->false_value)));
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Min::make(a, b);
         }
     }
 
-    void visit(const Max *op) {
+    void visit(const Max *op, const Expr &self) {
         Expr a = mutate(op->a), b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
             return;
@@ -2596,7 +2564,7 @@ private:
         } else if (no_overflow(op->type) &&
                    ramp_a &&
                    broadcast_b &&
-                   const_int_bounds(ramp_a, &ramp_min, &ramp_max) &&
+                   const_int_bounds(a, &ramp_min, &ramp_max) &&
                    const_int(broadcast_b->value, &ic)) {
             // max(ramp(a, b, n), broadcast(c, n))
             if (ramp_min >= ic && ramp_max >= ic) {
@@ -2836,7 +2804,7 @@ private:
                    shuffle_a->is_slice() &&
                    shuffle_b->is_slice()) {
             if (a.same_as(op->a) && b.same_as(op->b)) {
-                expr = hoist_slice_vector<Max>(op);
+                expr = hoist_slice_vector<Max>(self);
             } else {
                 expr = hoist_slice_vector<Max>(max(a, b));
             }
@@ -2853,13 +2821,13 @@ private:
                                  max(select_a->true_value, select_b->true_value),
                                  max(select_a->false_value, select_b->false_value)));
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Max::make(a, b);
         }
     }
 
-    void visit(const EQ *op) {
+    void visit(const EQ *op, const Expr &self) {
         Expr delta = mutate(op->a - op->b);
         if (propagate_indeterminate_expression(delta, op->type, &expr)) {
             return;
@@ -2924,7 +2892,7 @@ private:
                 // const - x == 0 -> x == const
                 expr = sub->b == sub->a;
             } else if (sub->a.same_as(op->a) && sub->b.same_as(op->b)) {
-                expr = op;
+                expr = self;
             } else {
                 // x - y == 0 -> x == y
                 expr = (sub->a == sub->b);
@@ -2952,11 +2920,11 @@ private:
         }
     }
 
-    void visit(const NE *op) {
+    void visit(const NE *op, const Expr &self) {
         expr = mutate(Not::make(op->a == op->b));
     }
 
-    void visit(const LT *op) {
+    void visit(const LT *op, const Expr &self) {
         Expr a = mutate(op->a), b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
             return;
@@ -3139,7 +3107,7 @@ private:
                 if (is_const(lt_a) || is_const(lt_b)) {
                     expr = mutate(lt_a || lt_b);
                 } else if (a.same_as(op->a) && b.same_as(op->b)) {
-                    expr = op;
+                    expr = self;
                 } else {
                     expr = LT::make(a, b);
                 }
@@ -3150,7 +3118,7 @@ private:
                 if (is_const(lt_a) || is_const(lt_b)) {
                     expr = mutate(lt_a && lt_b);
                 } else if (a.same_as(op->a) && b.same_as(op->b)) {
-                    expr = op;
+                    expr = self;
                 } else {
                     expr = LT::make(a, b);
                 }
@@ -3161,7 +3129,7 @@ private:
                 if (is_const(lt_a) || is_const(lt_b)) {
                     expr = mutate(lt_a && lt_b);
                 } else if (a.same_as(op->a) && b.same_as(op->b)) {
-                    expr = op;
+                    expr = self;
                 } else {
                     expr = LT::make(a, b);
                 }
@@ -3172,7 +3140,7 @@ private:
                 if (is_const(lt_a) || is_const(lt_b)) {
                     expr = mutate(lt_a || lt_b);
                 } else if (a.same_as(op->a) && b.same_as(op->b)) {
-                    expr = op;
+                    expr = self;
                 } else {
                     expr = LT::make(a, b);
                 }
@@ -3269,30 +3237,30 @@ private:
                 // ramp(x, a, b) < 0 -> broadcast(x < 0, b)
                 expr = Broadcast::make(mutate(LT::make(delta_ramp->base / mod_rem.modulus, 0)), delta_ramp->lanes);
             } else if (a.same_as(op->a) && b.same_as(op->b)) {
-                expr = op;
+                expr = self;
             } else {
                 expr = LT::make(a, b);
             }
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = LT::make(a, b);
         }
     }
 
-    void visit(const LE *op) {
+   void visit(const LE *op, const Expr &self) {
         expr = mutate(!(op->b < op->a));
     }
 
-    void visit(const GT *op) {
+    void visit(const GT *op, const Expr &self) {
         expr = mutate(op->b < op->a);
     }
 
-    void visit(const GE *op) {
+    void visit(const GE *op, const Expr &self) {
         expr = mutate(!(op->a < op->b));
     }
 
-    void visit(const And *op) {
+    void visit(const And *op, const Expr &self) {
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
@@ -3461,13 +3429,13 @@ private:
         } else if (eq_a &&
                    eq_a->a.as<Variable>() &&
                    is_simple_const(eq_a->b) &&
-                   expr_uses_var(b, eq_a->a.as<Variable>()->name)) {
+                   expr_uses_var(b, eq_a->a.as<Variable>())) {
             // (somevar == k) && b -> (somevar == k) && substitute(somevar, k, b)
             expr = mutate(And::make(a, substitute(eq_a->a.as<Variable>(), eq_a->b, b)));
         } else if (eq_b &&
                    eq_b->a.as<Variable>() &&
                    is_simple_const(eq_b->b) &&
-                   expr_uses_var(a, eq_b->a.as<Variable>()->name)) {
+                   expr_uses_var(a, eq_b->a.as<Variable>())) {
             // a && (somevar == k) -> substitute(somevar, k1, a) && (somevar == k)
             expr = mutate(And::make(substitute(eq_b->a.as<Variable>(), eq_b->b, a), b));
         } else if (broadcast_a &&
@@ -3475,19 +3443,19 @@ private:
                    broadcast_a->lanes == broadcast_b->lanes) {
             // x8(a) && x8(b) -> x8(a && b)
             expr = Broadcast::make(mutate(And::make(broadcast_a->value, broadcast_b->value)), broadcast_a->lanes);
-        } else if (var_a && expr_uses_var(b, var_a->name)) {
-            expr = mutate(a && substitute(var_a->name, make_one(a.type()), b));
-        } else if (var_b && expr_uses_var(a, var_b->name)) {
-            expr = mutate(substitute(var_b->name, make_one(b.type()), a) && b);
+        } else if (var_a && expr_uses_var(b, var_a)) {
+            expr = mutate(a && substitute(var_a, make_one(a.type()), b));
+        } else if (var_b && expr_uses_var(a, var_b)) {
+            expr = mutate(substitute(var_b, make_one(b.type()), a) && b);
         } else if (a.same_as(op->a) &&
                    b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = And::make(a, b);
         }
     }
 
-    void visit(const Or *op) {
+    void visit(const Or *op, const Expr &self) {
         Expr a = mutate(op->a), b = mutate(op->b);
         if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
             return;
@@ -3509,7 +3477,7 @@ private:
         const Variable *var_b = b.as<Variable>();
         const And *and_a = a.as<And>();
         const And *and_b = b.as<And>();
-        string name_a, name_b, name_c;
+        const Variable* xvar_a, *xvar_b, *xvar_c;
         int64_t ia = 0, ib = 0;
 
         if (is_one(a)) {
@@ -3636,36 +3604,36 @@ private:
             // (a != k1) || (a == k2) -> (a != k1) || (k1 == k2)
             // (second term always folds away)
             expr = mutate(Or::make(a, EQ::make(neq_a->b, eq_b->b)));
-        } else if (var_a && expr_uses_var(b, var_a->name)) {
-            expr = mutate(a || substitute(var_a->name, make_zero(a.type()), b));
-        } else if (var_b && expr_uses_var(a, var_b->name)) {
-            expr = mutate(substitute(var_b->name, make_zero(b.type()), a) || b);
-        } else if (is_var_simple_const_comparison(b, &name_c) &&
+        } else if (var_a && expr_uses_var(b, var_a)) {
+            expr = mutate(a || substitute(var_a, make_zero(a.type()), b));
+        } else if (var_b && expr_uses_var(a, var_b)) {
+            expr = mutate(substitute(var_b, make_zero(b.type()), a) || b);
+        } else if (is_var_simple_const_comparison(b, &xvar_c) &&
                    and_a &&
-                   ((is_var_simple_const_comparison(and_a->a, &name_a) && name_a == name_c) ||
-                   (is_var_simple_const_comparison(and_a->b, &name_b) && name_b == name_c))) {
+                   ((is_var_simple_const_comparison(and_a->a, &xvar_a) && xvar_a == xvar_c) ||
+                   (is_var_simple_const_comparison(and_a->b, &xvar_b) && xvar_b == xvar_c))) {
             // (a && b) || (c) -> (a || c) && (b || c)
             // iff c and at least one of a or b is of the form
             //     (var == const) or (var != const)
             // (and the vars are the same)
             expr = mutate(And::make(Or::make(and_a->a, b), Or::make(and_a->b, b)));
-        } else if (is_var_simple_const_comparison(a, &name_c) &&
+        } else if (is_var_simple_const_comparison(a, &xvar_c) &&
                    and_b &&
-                   ((is_var_simple_const_comparison(and_b->a, &name_a) && name_a == name_c) ||
-                   (is_var_simple_const_comparison(and_b->b, &name_b) && name_b == name_c))) {
+                   ((is_var_simple_const_comparison(and_b->a, &xvar_a) && xvar_a == xvar_c) ||
+                   (is_var_simple_const_comparison(and_b->b, &xvar_b) && xvar_b == xvar_c))) {
             // (c) || (a && b) -> (a || c) && (b || c)
             // iff c and at least one of a or b is of the form
             //     (var == const) or (var != const)
             // (and the vars are the same)
             expr = mutate(And::make(Or::make(and_b->a, a), Or::make(and_b->b, a)));
         } else if (a.same_as(op->a) && b.same_as(op->b)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Or::make(a, b);
         }
     }
 
-    void visit(const Not *op) {
+    void visit(const Not *op, const Expr &self) {
         Expr a = mutate(op->a);
         if (propagate_indeterminate_expression(a, op->type, &expr)) {
             return;
@@ -3693,13 +3661,13 @@ private:
         } else if (const Broadcast *n = a.as<Broadcast>()) {
             expr = mutate(Broadcast::make(!n->value, n->lanes));
         } else if (a.same_as(op->a)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Not::make(a);
         }
     }
 
-    void visit(const Select *op) {
+    void visit(const Select *op, const Expr &self) {
         Expr condition = mutate(op->condition);
         Expr true_value = mutate(op->true_value);
         Expr false_value = mutate(op->false_value);
@@ -3847,13 +3815,13 @@ private:
         } else if (condition.same_as(op->condition) &&
                    true_value.same_as(op->true_value) &&
                    false_value.same_as(op->false_value)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Select::make(condition, true_value, false_value);
         }
     }
 
-    void visit(const Ramp *op) {
+    void visit(const Ramp *op, const Expr &self) {
         Expr base = mutate(op->base);
         Expr stride = mutate(op->stride);
 
@@ -3861,13 +3829,13 @@ private:
             expr = Broadcast::make(base, op->lanes);
         } else if (base.same_as(op->base) &&
                    stride.same_as(op->stride)) {
-            expr = op;
+            expr = self;
         } else {
             expr = Ramp::make(base, stride, op->lanes);
         }
     }
 
-    void visit(const IfThenElse *op) {
+    void visit(const IfThenElse *op, const Stmt &self) {
         Expr condition = mutate(op->condition);
 
         // If (true) ...
@@ -3933,17 +3901,17 @@ private:
 
                 if (eq && var) {
                     if (!or_chain) {
-                        then_case = substitute(var->name, eq->b, then_case);
+                        then_case = substitute(var, eq->b, then_case);
                     }
                     if (!and_chain && eq->b.type().is_bool()) {
-                        else_case = substitute(var->name, !eq->b, else_case);
+                        else_case = substitute(var, !eq->b, else_case);
                     }
                 } else if (var) {
                     if (!or_chain) {
-                        then_case = substitute(var->name, const_true(), then_case);
+                        then_case = substitute(var, const_true(), then_case);
                     }
                     if (!and_chain) {
-                        else_case = substitute(var->name, const_false(), else_case);
+                        else_case = substitute(var, const_false(), else_case);
                     }
                 } else if (eq && is_const(eq->b) && !or_chain) {
                     // some_expr = const
@@ -3966,15 +3934,13 @@ private:
         if (condition.same_as(op->condition) &&
             then_case.same_as(op->then_case) &&
             else_case.same_as(op->else_case)) {
-            stmt = op;
+            stmt = self;
         } else {
             stmt = IfThenElse::make(condition, then_case, else_case);
         }
     }
 
-    void visit(const Load *op) {
-        found_buffer_reference(op->name);
-
+    void visit(const Load *op, const Expr &self) {
         Expr predicate = mutate(op->predicate);
         Expr index = mutate(op->index);
 
@@ -3985,19 +3951,20 @@ private:
             expr = undef(op->type);
         } else if (b_index && b_pred) {
             // Load of a broadcast should be broadcast of the load
-            Expr load = Load::make(op->type.element_of(), op->name, b_index->value, op->image, op->param, b_pred->value);
+            Expr load = Load::make(op->type.element_of(), op->buffer_var, b_index->value, b_pred->value);
             expr = Broadcast::make(load, b_index->lanes);
         } else if (predicate.same_as(op->predicate) && index.same_as(op->index)) {
-            expr = op;
+            expr = self;
         } else {
-            expr = Load::make(op->type, op->name, index, op->image, op->param, predicate);
+            expr = Load::make(op->type, op->buffer_var, index, predicate);
         }
     }
 
-    void visit(const Call *op) {
+    void visit(const Call *op, const Expr &self) {
         // Calls implicitly depend on host, dev, mins, and strides of the buffer referenced
-        if (op->call_type == Call::Image || op->call_type == Call::Halide) {
-            found_buffer_reference(op->name, op->args.size());
+        if (op->call_type == Call::Halide) {
+            // Remove force reference trick via Let, use AttrStmt
+            // found_buffer_reference(op->name, op->args.size());
         }
 
         if (op->is_intrinsic(Call::shift_left) ||
@@ -4034,7 +4001,7 @@ private:
             }
 
             if (a.same_as(op->args[0]) && b.same_as(op->args[1])) {
-                expr = op;
+                expr = self;
             } else if (op->is_intrinsic(Call::shift_left)) {
                 expr = a << b;
             } else {
@@ -4061,7 +4028,7 @@ private:
                        is_const_power_of_two_integer(make_const(a.type(), ub + 1), &bits)) {
                 expr = Mod::make(a, make_const(a.type(), ub + 1));
             } else if (a.same_as(op->args[0]) && b.same_as(op->args[1])) {
-                expr = op;
+                expr = self;
             } else {
                 expr = a & b;
             }
@@ -4071,7 +4038,7 @@ private:
                 return;
             }
             if (a.same_as(op->args[0]) && b.same_as(op->args[1])) {
-                expr = op;
+                expr = self;
             } else {
                 expr = a | b;
             }
@@ -4098,7 +4065,7 @@ private:
                 }
                 expr = make_const(a.type(), fa);
             } else if (a.same_as(op->args[0])) {
-                expr = op;
+                expr = self;
             } else {
                 expr = abs(a);
             }
@@ -4109,7 +4076,7 @@ private:
             if (const_float(arg, &f)) {
                 expr = std::isnan(f);
             } else if (arg.same_as(op->args[0])) {
-                expr = op;
+                expr = self;
             } else {
                 expr = Call::make(op->type, op->name, {arg}, op->call_type);
             }
@@ -4161,7 +4128,7 @@ private:
             } else if (changed) {
                 expr = Call::make(op->type, op->name, new_args, op->call_type);
             } else {
-                expr = op;
+                expr = self;
             }
         } else if (op->call_type == Call::PureExtern &&
                    op->name == "sqrt_f32") {
@@ -4174,7 +4141,7 @@ private:
             } else if (!arg.same_as(op->args[0])) {
                 expr = Call::make(op->type, op->name, {arg}, op->call_type);
             } else {
-                expr = op;
+                expr = self;
             }
         } else if (op->call_type == Call::PureExtern &&
                    op->name == "log_f32") {
@@ -4187,7 +4154,7 @@ private:
             } else if (!arg.same_as(op->args[0])) {
                 expr = Call::make(op->type, op->name, {arg}, op->call_type);
             } else {
-                expr = op;
+                expr = self;
             }
         } else if (op->call_type == Call::PureExtern &&
                    op->name == "exp_f32") {
@@ -4200,7 +4167,7 @@ private:
             } else if (!arg.same_as(op->args[0])) {
                 expr = Call::make(op->type, op->name, {arg}, op->call_type);
             } else {
-                expr = op;
+                expr = self;
             }
         } else if (op->call_type == Call::PureExtern &&
                    op->name == "pow_f32") {
@@ -4216,7 +4183,7 @@ private:
             } else if (!arg0.same_as(op->args[0]) || !arg1.same_as(op->args[1])) {
                 expr = Call::make(op->type, op->name, {arg0, arg1}, op->call_type);
             } else {
-                expr = op;
+                expr = self;
             }
         } else if (op->call_type == Call::PureExtern &&
                    (op->name == "floor_f32" || op->name == "ceil_f32" ||
@@ -4242,63 +4209,18 @@ private:
                         call->name == "round_f32" || call->name == "trunc_f32")) {
                 // For any combination of these integer-valued functions, we can
                 // discard the outer function. For example, floor(ceil(x)) == ceil(x).
-                expr = call;
+                expr = arg;
             } else if (!arg.same_as(op->args[0])) {
                 expr = Call::make(op->type, op->name, {arg}, op->call_type);
             } else {
-                expr = op;
+                expr = self;
             }
-        } else if (op->is_intrinsic(Call::prefetch)) {
-            // Collapse the prefetched region into lower dimension whenever is possible.
-            // TODO(psuriana): Deal with negative strides and overlaps.
-
-            internal_assert(op->args.size() % 2 == 0); // Format: {base, offset, extent0, min0, ...}
-
-            vector<Expr> args(op->args);
-            bool changed = false;
-            for (size_t i = 0; i < op->args.size(); ++i) {
-                args[i] = mutate(op->args[i]);
-                if (!args[i].same_as(op->args[i])) {
-                    changed = true;
-                }
-            }
-
-            // The {extent, stride} args in the prefetch call are sorted
-            // based on the storage dimension in ascending order (i.e. innermost
-            // first and outermost last), so, it is enough to check for the upper
-            // triangular pairs to see if any contiguous addresses exist.
-            for (size_t i = 2; i < args.size(); i += 2) {
-                Expr extent_0 = args[i];
-                Expr stride_0 = args[i + 1];
-                for (size_t j = i + 2; j < args.size(); j += 2) {
-                    Expr extent_1 = args[j];
-                    Expr stride_1 = args[j + 1];
-
-                    if (can_prove(extent_0 * stride_0 == stride_1)) {
-                        Expr new_extent = mutate(extent_0 * extent_1);
-                        Expr new_stride = stride_0;
-                        args.erase(args.begin() + j, args.begin() + j + 2);
-                        args[i] = new_extent;
-                        args[i + 1] = new_stride;
-                        i -= 2;
-                        break;
-                    }
-                }
-            }
-            internal_assert(args.size() <= op->args.size());
-
-            if (changed || (args.size() != op->args.size())) {
-                expr = Call::make(op->type, Call::prefetch, args, Call::Intrinsic);
-            } else {
-                expr = op;
-            }
-
         } else {
-            IRMutator::visit(op);
+            IRMutator::visit(op, self);
         }
     }
 
-    void visit(const Shuffle *op) {
+    void visit(const Shuffle *op, const Expr &self) {
         if (op->is_extract_element() &&
             (op->vectors[0].as<Ramp>() ||
              op->vectors[0].as<Broadcast>())) {
@@ -4314,7 +4236,7 @@ private:
         }
 
         // Mutate the vectors
-        vector<Expr> new_vectors;
+        Array<Expr> new_vectors;
         bool changed = false;
         for (Expr vector : op->vectors) {
             Expr new_vector = mutate(vector);
@@ -4332,7 +4254,7 @@ private:
             bool unpredicated = true;
             for (Expr e : new_vectors) {
                 const Load *load = e.as<Load>();
-                if (load && load->name == first_load->name) {
+                if (load && load->buffer_var.same_as(first_load->buffer_var)) {
                     load_predicates.push_back(load->predicate);
                     load_indices.push_back(load->index);
                     unpredicated = unpredicated && is_one(load->predicate);
@@ -4355,8 +4277,8 @@ private:
                     }
                     t = first_load->type;
                     t = t.with_lanes(op->indices.size());
-                    expr = Load::make(t, first_load->name, shuffled_index, first_load->image,
-                                      first_load->param, shuffled_predicate);
+                    expr = Load::make(t, first_load->buffer_var, shuffled_index,
+                                      shuffled_predicate);
                     return;
                 }
             }
@@ -4505,7 +4427,7 @@ private:
         }
 
         if (!changed) {
-            expr = op;
+            expr = self;
         } else {
             expr = Shuffle::make(new_vectors, op->indices);
         }
@@ -4527,8 +4449,8 @@ private:
             return e;
         }
 
-        const std::vector<Expr> &slices_a = shuffle_a->vectors;
-        const std::vector<Expr> &slices_b = shuffle_b->vectors;
+        const Array<Expr> &slices_a = shuffle_a->vectors;
+        const Array<Expr> &slices_b = shuffle_b->vectors;
         if (slices_a.size() != slices_b.size()) {
             return e;
         }
@@ -4539,7 +4461,7 @@ private:
             }
         }
 
-        vector<Expr> new_slices;
+        Array<Expr> new_slices;
         for (size_t i = 0; i < slices_a.size(); i++) {
             new_slices.push_back(T::make(slices_a[i], slices_b[i]));
         }
@@ -4548,9 +4470,9 @@ private:
     }
 
     template<typename T, typename Body>
-    Body simplify_let(const T *op) {
-        internal_assert(!var_info.contains(op->name))
-            << "Simplify only works on code where every name is unique. Repeated name: " << op->name << "\n";
+    Body simplify_let(const T *op, const Body &self) {
+        // TODO(haichen): maybe we don't need to this.
+        internal_assert(!var_info.contains(op->var.get()));
 
         // If the value is trivial, make a note of it in the scope so
         // we can subs it in later
@@ -4559,11 +4481,12 @@ private:
 
         // Iteratively peel off certain operations from the let value and push them inside.
         Expr new_value = value;
-        string new_name = op->name + ".s";
-        Expr new_var = Variable::make(new_value.type(), new_name);
+        string new_name = op->var->name_hint + ".s";
+        // Iteratively peel off certain operations from the let value and push them inside.
+        VarExpr new_var = Variable::make(new_value.type(), new_name);
         Expr replacement = new_var;
 
-        debug(4) << "simplify let " << op->name << " = " << value << " in ... " << op->name << " ...\n";
+        debug(4) << "simplify let " << op->var << " = " << value << " in ... " << op->var << " ...\n";
 
         while (1) {
             const Variable *var = new_value.as<Variable>();
@@ -4592,64 +4515,69 @@ private:
             }
 
             if (is_const(new_value)) {
-                replacement = substitute(new_name, new_value, replacement);
+                replacement = substitute(new_var, new_value, replacement);
                 new_value = Expr();
                 break;
             } else if (var) {
-                replacement = substitute(new_name, var, replacement);
+                replacement = substitute(new_var, new_value, replacement);
                 new_value = Expr();
                 break;
             } else if (add && (is_const(add->b) || var_b)) {
-                replacement = substitute(new_name, Add::make(new_var, add->b), replacement);
+                replacement = substitute(new_var, Add::make(new_var, add->b), replacement);
                 new_value = add->a;
             } else if (mul && (is_const(mul->b) || var_b)) {
-                replacement = substitute(new_name, Mul::make(new_var, mul->b), replacement);
+                replacement = substitute(new_var, Mul::make(new_var, mul->b), replacement);
                 new_value = mul->a;
             } else if (div && is_const(div->b)) {
-                replacement = substitute(new_name, Div::make(new_var, div->b), replacement);
+                replacement = substitute(new_var, Div::make(new_var, div->b), replacement);
                 new_value = div->a;
             } else if (sub && (is_const(sub->b) || var_b)) {
-                replacement = substitute(new_name, Sub::make(new_var, sub->b), replacement);
+                replacement = substitute(new_var, Sub::make(new_var, sub->b), replacement);
                 new_value = sub->a;
             } else if (mod && is_const(mod->b)) {
-                replacement = substitute(new_name, Mod::make(new_var, mod->b), replacement);
+                replacement = substitute(new_var, Mod::make(new_var, mod->b), replacement);
                 new_value = mod->a;
             } else if (min && is_const(min->b)) {
-                replacement = substitute(new_name, Min::make(new_var, min->b), replacement);
+                replacement = substitute(new_var, Min::make(new_var, min->b), replacement);
                 new_value = min->a;
             } else if (max && is_const(max->b)) {
-                replacement = substitute(new_name, Max::make(new_var, max->b), replacement);
+                replacement = substitute(new_var, Max::make(new_var, max->b), replacement);
                 new_value = max->a;
             } else if (ramp && is_const(ramp->stride)) {
                 new_value = ramp->base;
-                new_var = Variable::make(new_value.type(), new_name);
-                replacement = substitute(new_name, Ramp::make(new_var, ramp->stride, ramp->lanes), replacement);
+                VarExpr repl_var = Variable::make(new_value.type(), new_name);
+                replacement = substitute(new_var, Ramp::make(repl_var, ramp->stride, ramp->lanes), replacement);
+                new_var = repl_var;
             } else if (broadcast) {
                 new_value = broadcast->value;
-                new_var = Variable::make(new_value.type(), new_name);
-                replacement = substitute(new_name, Broadcast::make(new_var, broadcast->lanes), replacement);
+                VarExpr repl_var = Variable::make(new_value.type(), new_name);
+                replacement = substitute(new_var, Broadcast::make(repl_var, broadcast->lanes), replacement);
+                new_var = repl_var;
             } else if (cast && cast->type.bits() > cast->value.type().bits()) {
                 // Widening casts get pushed inwards, narrowing casts
                 // stay outside. This keeps the temporaries small, and
                 // helps with peephole optimizations in codegen that
                 // skip the widening entirely.
                 new_value = cast->value;
-                new_var = Variable::make(new_value.type(), new_name);
-                replacement = substitute(new_name, Cast::make(cast->type, new_var), replacement);
+                VarExpr repl_var = Variable::make(new_value.type(), new_name);
+                replacement = substitute(new_var, Cast::make(cast->type, repl_var), replacement);
+                new_var = repl_var;
             } else if (shuffle && shuffle->is_slice()) {
                 // Replacing new_value below might free the shuffle
                 // indices vector, so save them now.
-                std::vector<int> slice_indices = shuffle->indices;
+                Array<Expr> slice_indices = shuffle->indices;
                 new_value = Shuffle::make_concat(shuffle->vectors);
-                new_var = Variable::make(new_value.type(), new_name);
-                replacement = substitute(new_name, Shuffle::make({new_var}, slice_indices), replacement);
+                VarExpr repl_var = Variable::make(new_value.type(), new_name);
+                replacement = substitute(new_var, Shuffle::make({repl_var}, slice_indices), replacement);
+                new_var = repl_var;
             } else if (shuffle && shuffle->is_concat() &&
                        ((var_a && !var_b) || (!var_a && var_b))) {
-                new_var = Variable::make(var_a ? shuffle->vectors[1].type() : shuffle->vectors[0].type(), new_name);
-                Expr op_a = var_a ? shuffle->vectors[0] : new_var;
-                Expr op_b = var_a ? new_var : shuffle->vectors[1];
-                replacement = substitute(new_name, Shuffle::make_concat({op_a, op_b}), replacement);
+                VarExpr repl_var = Variable::make(var_a ? shuffle->vectors[1].type() : shuffle->vectors[0].type(), new_name);
+                Expr op_a = var_a ? shuffle->vectors[0] : repl_var;
+                Expr op_b = var_a ? repl_var : shuffle->vectors[1];
+                replacement = substitute(new_var, Shuffle::make_concat({op_a, op_b}), replacement);
                 new_value = var_a ? shuffle->vectors[1] : shuffle->vectors[0];
+                new_var = repl_var;
             } else {
                 break;
             }
@@ -4668,19 +4596,19 @@ private:
         info.new_uses = 0;
         info.replacement = replacement;
 
-        var_info.push(op->name, info);
+        var_info.push(op->var.get(), info);
 
         // Before we enter the body, track the alignment info
         bool new_value_alignment_tracked = false, new_value_bounds_tracked = false;
         if (new_value.defined() && no_overflow_scalar_int(new_value.type())) {
             ModulusRemainder mod_rem = modulus_remainder(new_value, alignment_info);
             if (mod_rem.modulus > 1) {
-                alignment_info.push(new_name, mod_rem);
+                alignment_info.push(new_var.get(), mod_rem);
                 new_value_alignment_tracked = true;
             }
             int64_t val_min, val_max;
             if (const_int_bounds(new_value, &val_min, &val_max)) {
-                bounds_info.push(new_name, { val_min, val_max });
+                bounds_info.push(new_var.get(), { val_min, val_max });
                 new_value_bounds_tracked = true;
             }
         }
@@ -4688,12 +4616,12 @@ private:
         if (no_overflow_scalar_int(value.type())) {
             ModulusRemainder mod_rem = modulus_remainder(value, alignment_info);
             if (mod_rem.modulus > 1) {
-                alignment_info.push(op->name, mod_rem);
+                alignment_info.push(op->var.get(), mod_rem);
                 value_alignment_tracked = true;
             }
             int64_t val_min, val_max;
             if (const_int_bounds(value, &val_min, &val_max)) {
-                bounds_info.push(op->name, { val_min, val_max });
+                bounds_info.push(op->var.get(), { val_min, val_max });
                 value_bounds_tracked = true;
             }
         }
@@ -4701,41 +4629,41 @@ private:
         body = mutate(body);
 
         if (value_alignment_tracked) {
-            alignment_info.pop(op->name);
+            alignment_info.pop(op->var.get());
         }
         if (value_bounds_tracked) {
-            bounds_info.pop(op->name);
+            bounds_info.pop(op->var.get());
         }
         if (new_value_alignment_tracked) {
-            alignment_info.pop(new_name);
+            alignment_info.pop(new_var.get());
         }
         if (new_value_bounds_tracked) {
-            bounds_info.pop(new_name);
+            bounds_info.pop(new_var.get());
         }
 
-        info = var_info.get(op->name);
-        var_info.pop(op->name);
+        info = var_info.get(op->var.get());
+        var_info.pop(op->var.get());
 
         Body result = body;
 
         if (new_value.defined() && info.new_uses > 0) {
             // The new name/value may be used
-            result = T::make(new_name, new_value, result);
+            result = T::make(new_var, new_value, result);
         }
 
         if (info.old_uses > 0) {
             // The old name is still in use. We'd better keep it as well.
-            result = T::make(op->name, value, result);
+            result = T::make(op->var, value, result);
         }
 
         // Don't needlessly make a new Let/LetStmt node.  (Here's a
         // piece of template syntax I've never needed before).
         const T *new_op = result.template as<T>();
         if (new_op &&
-            new_op->name == op->name &&
+            new_op->var.same_as(op->var) &&
             new_op->body.same_as(op->body) &&
             new_op->value.same_as(op->value)) {
-            return op;
+            return self;
         }
 
         return result;
@@ -4743,24 +4671,24 @@ private:
     }
 
 
-    void visit(const Let *op) {
+    void visit(const Let *op, const Expr &self) {
         if (simplify_lets) {
-            expr = simplify_let<Let, Expr>(op);
+            expr = simplify_let<Let, Expr>(op, self);
         } else {
-            IRMutator::visit(op);
+            IRMutator::visit(op, self);
         }
     }
 
-    void visit(const LetStmt *op) {
+    void visit(const LetStmt *op, const Stmt &self) {
         if (simplify_lets) {
-            stmt = simplify_let<LetStmt, Stmt>(op);
+            stmt = simplify_let<LetStmt, Stmt>(op, self);
         } else {
-            IRMutator::visit(op);
+            IRMutator::visit(op, self);
         }
     }
 
-    void visit(const AssertStmt *op) {
-        IRMutator::visit(op);
+    void visit(const AssertStmt *op, const Stmt &self) {
+        IRMutator::visit(op, self);
 
         const AssertStmt *a = stmt.as<AssertStmt>();
         if (a && is_zero(a->condition)) {
@@ -4769,7 +4697,7 @@ private:
             // the warning, because the assertion is generated internally
             // by Halide and is expected to always fail.
             const Call *call = a->message.as<Call>();
-            const bool const_false_conditions_expected = 
+            const bool const_false_conditions_expected =
                 call && call->name == "halide_error_specialize_fail";
             if (!const_false_conditions_expected) {
                 user_warning << "This pipeline is guaranteed to fail an assertion at runtime: \n"
@@ -4781,7 +4709,7 @@ private:
     }
 
 
-    void visit(const For *op) {
+    void visit(const For *op, const Stmt &self) {
         Expr new_min = mutate(op->min);
         Expr new_extent = mutate(op->extent);
 
@@ -4791,13 +4719,13 @@ private:
             const_int(new_extent, &new_extent_int)) {
             bounds_tracked = true;
             int64_t new_max_int = new_min_int + new_extent_int - 1;
-            bounds_info.push(op->name, { new_min_int, new_max_int });
+            bounds_info.push(op->loop_var.get(), { new_min_int, new_max_int });
         }
 
         Stmt new_body = mutate(op->body);
 
         if (bounds_tracked) {
-            bounds_info.pop(op->name);
+            bounds_info.pop(op->loop_var.get());
         }
 
         if (is_no_op(new_body)) {
@@ -4805,19 +4733,19 @@ private:
         } else if (op->min.same_as(new_min) &&
             op->extent.same_as(new_extent) &&
             op->body.same_as(new_body)) {
-            stmt = op;
+            stmt = self;
         } else {
-            stmt = For::make(op->name, new_min, new_extent, op->for_type, op->device_api, new_body);
+            stmt = For::make(op->loop_var, new_min, new_extent, op->for_type, op->device_api, new_body);
         }
     }
 
-    void visit(const Provide *op) {
-        found_buffer_reference(op->name, op->args.size());
-        IRMutator::visit(op);
+    void visit(const Provide *op, const Stmt &self) {
+        //found_buffer_reference(op->name, op->args.size());
+        IRMutator::visit(op, self);
     }
 
-    void visit(const Store *op) {
-        found_buffer_reference(op->name);
+    void visit(const Store *op, const Stmt &self) {
+        //found_buffer_reference(op->name);
 
         Expr predicate = mutate(op->predicate);
         Expr value = mutate(op->value);
@@ -4831,18 +4759,18 @@ private:
             stmt = Evaluate::make(0);
         } else if (scalar_pred && !is_one(scalar_pred->value)) {
             stmt = IfThenElse::make(scalar_pred->value,
-                                    Store::make(op->name, value, index, op->param, const_true(value.type().lanes())));
-        } else if (is_undef(value) || (load && load->name == op->name && equal(load->index, index))) {
+                                    Store::make(op->buffer_var, value, index, const_true(value.type().lanes())));
+        } else if (is_undef(value) || (load && load->buffer_var.same_as(op->buffer_var) && equal(load->index, index))) {
             // foo[x] = foo[x] or foo[x] = undef is a no-op
             stmt = Evaluate::make(0);
         } else if (predicate.same_as(op->predicate) && value.same_as(op->value) && index.same_as(op->index)) {
-            stmt = op;
+            stmt = self;
         } else {
-            stmt = Store::make(op->name, value, index, op->param, predicate);
+            stmt = Store::make(op->buffer_var, value, index, predicate);
         }
     }
 
-    void visit(const Allocate *op) {
+    void visit(const Allocate *op, const Stmt &self) {
         std::vector<Expr> new_extents;
         bool all_extents_unmodified = true;
         for (size_t i = 0; i < op->extents.size(); i++) {
@@ -4861,7 +4789,7 @@ private:
             equal(op->condition, body_if->condition)) {
             // We can move the allocation into the if body case. The
             // else case must not use it.
-            stmt = Allocate::make(op->name, op->type, new_extents,
+            stmt = Allocate::make(op->buffer_var, op->type, new_extents,
                                   condition, body_if->then_case,
                                   new_expr, op->free_function);
             stmt = IfThenElse::make(body_if->condition, stmt, body_if->else_case);
@@ -4869,27 +4797,27 @@ private:
                    body.same_as(op->body) &&
                    condition.same_as(op->condition) &&
                    new_expr.same_as(op->new_expr)) {
-            stmt = op;
+            stmt = self;
         } else {
-            stmt = Allocate::make(op->name, op->type, new_extents,
+            stmt = Allocate::make(op->buffer_var, op->type, new_extents,
                                   condition, body,
                                   new_expr, op->free_function);
         }
     }
 
-    void visit(const Evaluate *op) {
+    void visit(const Evaluate *op, const Stmt &self) {
         Expr value = mutate(op->value);
 
         // Rewrite Lets inside an evaluate as LetStmts outside the Evaluate.
-        vector<pair<string, Expr>> lets;
+        vector<pair<VarExpr, Expr>> lets;
         while (const Let *let = value.as<Let>()) {
             value = let->body;
-            lets.push_back({let->name, let->value});
+            lets.push_back({let->var, let->value});
         }
 
         if (value.same_as(op->value)) {
             internal_assert(lets.empty());
-            stmt = op;
+            stmt = self;
         } else {
             // Rewrap the lets outside the evaluate node
             stmt = Evaluate::make(value);
@@ -4899,19 +4827,19 @@ private:
         }
     }
 
-    void visit(const ProducerConsumer *op) {
+    void visit(const ProducerConsumer *op, const Stmt &self) {
         Stmt body = mutate(op->body);
 
         if (is_no_op(body)) {
             stmt = Evaluate::make(0);
         } else if (body.same_as(op->body)) {
-            stmt = op;
+            stmt = self;
         } else {
-            stmt = ProducerConsumer::make(op->name, op->is_producer, body);
+            stmt = ProducerConsumer::make(op->func, op->is_producer, body);
         }
     }
 
-    void visit(const Block *op) {
+    void visit(const Block *op, const Stmt &self) {
         Stmt first = mutate(op->first);
         Stmt rest = mutate(op->rest);
 
@@ -4938,12 +4866,12 @@ private:
 
             // We need to make a new name since we're pulling it out to a
             // different scope.
-            string var_name = unique_name('t');
-            Expr new_var = Variable::make(let_first->value.type(), var_name);
-            new_block = substitute(let_first->name, new_var, new_block);
-            new_block = substitute(let_rest->name, new_var, new_block);
+            string var_name = "t";
+            VarExpr new_var = Variable::make(let_first->value.type(), var_name);
+            new_block = substitute(let_first->var, new_var, new_block);
+            new_block = substitute(let_rest->var, new_var, new_block);
 
-            stmt = LetStmt::make(var_name, let_first->value, new_block);
+            stmt = LetStmt::make(new_var, let_first->value, new_block);
         } else if (if_first &&
                    if_rest &&
                    equal(if_first->condition, if_rest->condition) &&
@@ -4970,12 +4898,12 @@ private:
             // the first condition.  The second if can be nested
             // inside the first one, because if it's true the
             // first one must also be true.
-            Stmt then_case = mutate(Block::make(if_first->then_case, if_rest));
+            Stmt then_case = mutate(Block::make(if_first->then_case, rest));
             Stmt else_case = mutate(if_first->else_case);
             stmt = IfThenElse::make(if_first->condition, then_case, else_case);
         } else if (op->first.same_as(first) &&
                    op->rest.same_as(rest)) {
-            stmt = op;
+            stmt = self;
         } else {
             stmt = Block::make(first, rest);
         }
@@ -5069,6 +4997,10 @@ Expr ramp(const Expr &base, const Expr &stride, int w) {
 
 Expr broadcast(const Expr &base, int w) {
     return Broadcast::make(base, w);
+}
+
+VarExpr Var(string name) {
+    return Variable::make(Int(32), name);
 }
 
 void check_casts() {
@@ -6007,7 +5939,7 @@ void check_boolean() {
 
         Expr b[12];
         for (int i = 0; i < 12; i++) {
-            b[i] = Variable::make(Bool(), unique_name('b'));
+            b[i] = Variable::make(Bool(), "b");
         }
 
         // Some rules that collapse selects
@@ -6037,7 +5969,7 @@ void check_boolean() {
 }
 
 void check_math() {
-    Var x = Var("x");
+    Expr x = Var("x");
 
     check(sqrt(4.0f), 2.0f);
     check(log(0.5f + 0.5f), 0.0f);
@@ -6231,7 +6163,7 @@ void check_indeterminate() {
 }  // namespace
 
 void simplify_test() {
-    Expr x = Var("x"), y = Var("y"), z = Var("z"), w = Var("w"), v = Var("v");
+    VarExpr x = Var("x"), y = Var("y"), z = Var("z"), w = Var("w"), v = Var("v");
     Expr xf = cast<float>(x);
     Expr yf = cast<float>(y);
     Expr t = const_true(), f = const_false();
@@ -6264,23 +6196,23 @@ void simplify_test() {
 
     v = Variable::make(Int(32, 4), "v");
     // Check constants get pushed inwards
-    check(Let::make("x", 3, x+4), 7);
+    check(Let::make(x, 3, x+4), 7);
 
     // Check ramps in lets get pushed inwards
-    check(Let::make("v", ramp(x*2+7, 3, 4), v + Expr(broadcast(2, 4))),
+    check(Let::make(v, ramp(x*2+7, 3, 4), v + Expr(broadcast(2, 4))),
           ramp(x*2+9, 3, 4));
 
     // Check broadcasts in lets get pushed inwards
-    check(Let::make("v", broadcast(x, 4), v + Expr(broadcast(2, 4))),
+    check(Let::make(v, broadcast(x, 4), v + Expr(broadcast(2, 4))),
           broadcast(x+2, 4));
 
     // Check that dead lets get stripped
-    check(Let::make("x", 3*y*y*y, 4), 4);
-    check(Let::make("x", 0, 0), 0);
+    check(Let::make(x, 3*y*y*y, 4), 4);
+    check(Let::make(x, 0, 0), 0);
 
     // Check that lets inside an evaluate node get lifted
-    check(Evaluate::make(Let::make("x", Call::make(Int(32), "dummy", {3, x, 4}, Call::Extern), Let::make("y", 10, x + y + 2))),
-          LetStmt::make("x", Call::make(Int(32), "dummy", {3, x, 4}, Call::Extern), Evaluate::make(x + 12)));
+    check(Evaluate::make(Let::make(x, Call::make(Int(32), "dummy", {3, x, 4}, Call::Extern), Let::make(y, 10, x + y + 2))),
+          LetStmt::make(x, Call::make(Int(32), "dummy", {3, x, 4}, Call::Extern), Evaluate::make(x + 12)));
 
     // Test case with most negative 32-bit number, as constant to check that it is not negated.
     check(((x * (int32_t)0x80000000) + (y + z * (int32_t)0x80000000)),
@@ -6293,12 +6225,6 @@ void simplify_test() {
     check(Call::make(type_of<const char *>(), Call::stringify, {3, x, 4, string(", "), 3.4f}, Call::Intrinsic),
           Call::make(type_of<const char *>(), Call::stringify, {string("3"), x, string("4, 3.400000")}, Call::Intrinsic));
 
-    {
-        // Check that contiguous prefetch call get collapsed
-        Expr base = Variable::make(Handle(), "buf");
-        check(Call::make(Int(32), Call::prefetch, {base, x, 4, 1, 64, 4, min(x + y, 128), 256}, Call::Intrinsic),
-              Call::make(Int(32), Call::prefetch, {base, x, min(x + y, 128) * 256, 1}, Call::Intrinsic));
-    }
 
     // Check min(x, y)*max(x, y) gets simplified into x*y
     check(min(x, y)*max(x, y), x*y);
@@ -6326,7 +6252,7 @@ void simplify_test() {
 
     // Check if we can simplify away comparison on vector types considering bounds.
     Scope<Interval> bounds_info;
-    bounds_info.push("x", Interval(0,4));
+    bounds_info.push(x.get(), Interval(0,4));
     check_in_bounds(ramp(x,  1, 4) < broadcast( 0, 4), const_false(4), bounds_info);
     check_in_bounds(ramp(x,  1, 4) < broadcast( 8, 4), const_true(4),  bounds_info);
     check_in_bounds(ramp(x, -1, 4) < broadcast(-4, 4), const_false(4), bounds_info);
@@ -6378,9 +6304,10 @@ void simplify_test() {
 
     // Now check that an interleave of some collapsible loads collapses into a single dense load
     {
-        Expr load1 = Load::make(Float(32, 4), "buf", ramp(x, 2, 4), Buffer<>(), Parameter(), const_true(4));
-        Expr load2 = Load::make(Float(32, 4), "buf", ramp(x+1, 2, 4), Buffer<>(), Parameter(), const_true(4));
-        Expr load12 = Load::make(Float(32, 8), "buf", ramp(x, 1, 8), Buffer<>(), Parameter(), const_true(8));
+        VarExpr buf = Var("buf"), buf2 = Var("buf2");
+        Expr load1 = Load::make(Float(32, 4), buf, ramp(x, 2, 4), const_true(4));
+        Expr load2 = Load::make(Float(32, 4), buf, ramp(x+1, 2, 4), const_true(4));
+        Expr load12 = Load::make(Float(32, 8), buf, ramp(x, 1, 8), const_true(8));
         check(interleave_vectors({load1, load2}), load12);
 
         // They don't collapse in the other order
@@ -6388,20 +6315,21 @@ void simplify_test() {
         check(e, e);
 
         // Or if the buffers are different
-        Expr load3 = Load::make(Float(32, 4), "buf2", ramp(x+1, 2, 4), Buffer<>(), Parameter(), const_true(4));
+        Expr load3 = Load::make(Float(32, 4), buf2, ramp(x+1, 2, 4), const_true(4));
         e = interleave_vectors({load1, load3});
         check(e, e);
     }
 
     // Check that concatenated loads of adjacent scalars collapse into a vector load.
     {
+        VarExpr buf = Var("buf");
         int lanes = 4;
         std::vector<Expr> loads;
         for (int i = 0; i < lanes; i++) {
-            loads.push_back(Load::make(Float(32), "buf", x+i, Buffer<>(), Parameter(), const_true()));
+            loads.push_back(Load::make(Float(32), buf, x+i, const_true()));
         }
 
-        check(concat_vectors(loads), Load::make(Float(32, lanes), "buf", ramp(x, 1, lanes), Buffer<>(), Parameter(), const_true(lanes)));
+        check(concat_vectors(loads), Load::make(Float(32, lanes), buf, ramp(x, 1, lanes), const_true(lanes)));
     }
 
     // This expression doesn't simplify, but it did cause exponential
@@ -6422,10 +6350,12 @@ void simplify_test() {
     }
 
     {
+
+        VarExpr f = Var("f");
         Expr pred = ramp(x*y + x*z, 2, 8) > 2;
         Expr index = ramp(x + y, 1, 8);
-        Expr value = Load::make(index.type(), "f", index, Buffer<>(), Parameter(), const_true(index.type().lanes()));
-        Stmt stmt = Store::make("f", value, index, Parameter(), pred);
+        Expr value = Load::make(index.type(), f, index, const_true(index.type().lanes()));
+        Stmt stmt = Store::make(f, value, index, pred);
         check(stmt, Evaluate::make(0));
     }
 

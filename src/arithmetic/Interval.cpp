@@ -1,6 +1,6 @@
 #include "Interval.h"
-#include "IROperator.h"
-#include "IREquality.h"
+#include "ir/IROperator.h"
+#include "ir/IREquality.h"
 
 namespace Halide {
 namespace Internal {

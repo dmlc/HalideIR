@@ -7,9 +7,10 @@
 #include <utility>
 #include <iostream>
 
-#include "Util.h"
-#include "Debug.h"
-#include "Error.h"
+#include "base/Util.h"
+#include "base/Debug.h"
+#include "base/Error.h"
+#include "ir/IR.h"
 
 /** \file
  * Defines the Scope class, which is used for keeping track of names in a scope while traversing IR
@@ -73,7 +74,7 @@ public:
 template<typename T>
 class Scope {
 private:
-    std::map<std::string, SmallStack<T>> table;
+    std::map<const Variable*, SmallStack<T>> table;
 
     // Copying a scope object copies a large table full of strings and
     // stacks. Bad idea.
@@ -102,33 +103,33 @@ public:
     }
 
     /** Retrieve the value referred to by a name */
-    T get(const std::string &name) const {
-        typename std::map<std::string, SmallStack<T>>::const_iterator iter = table.find(name);
+    T get(const Variable* var) const {
+        typename std::map<const Variable*, SmallStack<T>>::const_iterator iter = table.find(var);
         if (iter == table.end() || iter->second.empty()) {
             if (containing_scope) {
-                return containing_scope->get(name);
+                return containing_scope->get(var);
             } else {
-                internal_error << "Symbol '" << name << "' not found\n";
+                internal_error << "Symbol '" << var->name_hint << "' not found\n";
             }
         }
         return iter->second.top();
     }
 
     /** Return a reference to an entry. Does not consider the containing scope. */
-    T &ref(const std::string &name) {
-        typename std::map<std::string, SmallStack<T>>::iterator iter = table.find(name);
+    T &ref(const Variable* var) {
+        typename std::map<const Variable*, SmallStack<T>>::iterator iter = table.find(var);
         if (iter == table.end() || iter->second.empty()) {
-            internal_error << "Symbol '" << name << "' not found\n";
+            internal_error << "Symbol '" << var->name_hint << "' not found\n";
         }
         return iter->second.top_ref();
     }
 
     /** Tests if a name is in scope */
-    bool contains(const std::string &name) const {
-        typename std::map<std::string, SmallStack<T>>::const_iterator iter = table.find(name);
+    bool contains(const Variable* var) const {
+        typename std::map<const Variable*, SmallStack<T>>::const_iterator iter = table.find(var);
         if (iter == table.end() || iter->second.empty()) {
             if (containing_scope) {
-                return containing_scope->contains(name);
+                return containing_scope->contains(var);
             } else {
                 return false;
             }
@@ -139,16 +140,16 @@ public:
     /** Add a new (name, value) pair to the current scope. Hide old
      * values that have this name until we pop this name.
      */
-    void push(const std::string &name, const T &value) {
-        table[name].push(value);
+    void push(const Variable* var, const T &value) {
+        table[var].push(value);
     }
 
     /** A name goes out of scope. Restore whatever its old value
      * was (or remove it entirely if there was nothing else of the
      * same name in an outer scope) */
-    void pop(const std::string &name) {
-        typename std::map<std::string, SmallStack<T>>::iterator iter = table.find(name);
-        internal_assert(iter != table.end()) << "Name not in symbol table: " << name << "\n";
+    void pop(const Variable* var) {
+        typename std::map<const Variable*, SmallStack<T>>::iterator iter = table.find(var);
+        internal_assert(iter != table.end()) << "Name not in symbol table: " << var->name_hint << "\n";
         iter->second.pop();
         if (iter->second.empty()) {
             table.erase(iter);
@@ -157,9 +158,9 @@ public:
 
     /** Iterate through the scope. Does not capture any containing scope. */
     class const_iterator {
-        typename std::map<std::string, SmallStack<T>>::const_iterator iter;
+        typename std::map<const Variable*, SmallStack<T>>::const_iterator iter;
     public:
-        explicit const_iterator(const typename std::map<std::string, SmallStack<T>>::const_iterator &i) :
+        explicit const_iterator(const typename std::map<const Variable*, SmallStack<T>>::const_iterator &i) :
             iter(i) {
         }
 
@@ -173,7 +174,7 @@ public:
             ++iter;
         }
 
-        const std::string &name() {
+        const Variable* var() {
             return iter->first;
         }
 
@@ -195,9 +196,9 @@ public:
     }
 
     class iterator {
-        typename std::map<std::string, SmallStack<T>>::iterator iter;
+        typename std::map<Variable*, SmallStack<T>>::iterator iter;
     public:
-        explicit iterator(typename std::map<std::string, SmallStack<T>>::iterator i) :
+        explicit iterator(typename std::map<Variable*, SmallStack<T>>::iterator i) :
             iter(i) {
         }
 
@@ -211,7 +212,7 @@ public:
             ++iter;
         }
 
-        const std::string &name() {
+        const Variable* var() {
             return iter->first;
         }
 
@@ -243,7 +244,7 @@ std::ostream &operator<<(std::ostream &stream, const Scope<T>& s) {
     stream << "{\n";
     typename Scope<T>::const_iterator iter;
     for (iter = s.cbegin(); iter != s.cend(); ++iter) {
-        stream << "  " << iter.name() << "\n";
+        stream << "  " << iter.var()->name_hint << "\n";
     }
     stream << "}";
     return stream;

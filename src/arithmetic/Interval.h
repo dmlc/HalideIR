@@ -1,204 +1,89 @@
-#include "Interval.h"
-#include "IROperator.h"
-#include "IREquality.h"
+#ifndef HALIDE_INTERVAL_H
+#define HALIDE_INTERVAL_H
+
+/** \file
+ * Defines the Interval class
+ */
+
+#include "ir/Expr.h"
 
 namespace Halide {
 namespace Internal {
 
-// This is called repeatedly by bounds inference and the solver to
-// build large expressions, so we want to simplify eagerly to avoid
-// monster expressions.
-Expr Interval::make_max(Expr a, Expr b) {
-    if (a.same_as(b)) return a;
+/** A class to represent ranges of Exprs. Can be unbounded above or below. */
+struct Interval {
 
-    // Deal with infinities
-    if (a.same_as(Interval::pos_inf)) return a;
-    if (b.same_as(Interval::pos_inf)) return b;
-    if (a.same_as(Interval::neg_inf)) return b;
-    if (b.same_as(Interval::neg_inf)) return a;
+    /** Exprs to represent positive and negative infinity */
+    static Expr pos_inf, neg_inf;
 
-    // Deep equality
-    if (equal(a, b)) return a;
+    /** The lower and upper bound of the interval. They are included
+     * in the interval. */
+    Expr min, max;
 
-    // Constant fold
-    const int64_t *ia = as_const_int(a);
-    const int64_t *ib = as_const_int(b);
-    const uint64_t *ua = as_const_uint(a);
-    const uint64_t *ub = as_const_uint(b);
-    const double *fa = as_const_float(a);
-    const double *fb = as_const_float(b);
-    if (ia && ib) return (*ia > *ib) ? a : b;
-    if (ua && ub) return (*ua > *ub) ? a : b;
-    if (fa && fb) return (*fa > *fb) ? a : b;
+    /** A default-constructed Interval is everything */
+    Interval() : min(neg_inf), max(pos_inf) {}
 
-    // Balance trees to the left, with constants pushed rightwards
-    const Max *ma = a.as<Max>();
-    const Max *mb = b.as<Max>();
-    if (mb && !ma && !(is_const(mb->a) && is_const(mb->b))) {
-        std::swap(ma, mb);
-        std::swap(a, b);
-    }
-    if (ma && is_const(ma->b) && is_const(b)) {
-        return Interval::make_max(ma->a, Interval::make_max(ma->b, b));
-    }
-    if (ma && (ma->a.same_as(b) || ma->b.same_as(b))) {
-        // b is already represented in a
-        return a;
+    /** Construct an interval from a lower and upper bound. */
+    Interval(Expr min, Expr max) : min(min), max(max) {
+        internal_assert(min.defined() && max.defined());
     }
 
-    return Max::make(a, b);
-}
+    /** The interval representing everything. */
+    static Interval everything() {return Interval(neg_inf, pos_inf);}
 
-Expr Interval::make_min(Expr a, Expr b) {
-    if (a.same_as(b)) return a;
+    /** The interval representing nothing. */
+    static Interval nothing() {return Interval(pos_inf, neg_inf);}
 
-    // Deal with infinities
-    if (a.same_as(Interval::pos_inf)) return b;
-    if (b.same_as(Interval::pos_inf)) return a;
-    if (a.same_as(Interval::neg_inf)) return a;
-    if (b.same_as(Interval::neg_inf)) return b;
+    /** Construct an interval representing a single point */
+    static Interval single_point(Expr e) {return Interval(e, e);}
 
-    // Deep equality
-    if (equal(a, b)) return a;
+    /** Is the interval the empty set */
+    bool is_empty() const {return min.same_as(pos_inf) || max.same_as(neg_inf);}
 
-    // Constant fold
-    const int64_t *ia = as_const_int(a);
-    const int64_t *ib = as_const_int(b);
-    const uint64_t *ua = as_const_uint(a);
-    const uint64_t *ub = as_const_uint(b);
-    const double *fa = as_const_float(a);
-    const double *fb = as_const_float(b);
-    if (ia && ib) return (*ia > *ib) ? b : a;
-    if (ua && ub) return (*ua > *ub) ? b : a;
-    if (fa && fb) return (*fa > *fb) ? b : a;
+    /** Is the interval the entire range */
+    bool is_everything() const {return min.same_as(neg_inf) && max.same_as(pos_inf);}
 
-    // Balance trees to the left, with constants pushed rightwards
-    const Min *ma = a.as<Min>();
-    const Min *mb = b.as<Min>();
-    if (mb && !ma && !(is_const(mb->a) && is_const(mb->b))) {
-        std::swap(ma, mb);
-        std::swap(a, b);
-    }
-    if (ma && is_const(ma->b) && is_const(b)) {
-        return Interval::make_min(ma->a, Interval::make_min(ma->b, b));
-    }
-    if (ma && (ma->a.same_as(b) || ma->b.same_as(b))) {
-        // b is already represented in a
-        return a;
-    }
+    /** Is the interval just a single value (min == max) */
+    bool is_single_point() const {return min.same_as(max);}
 
-    return Min::make(a, b);
-}
+    /** Is the interval a particular single value */
+    bool is_single_point(Expr e) const {return min.same_as(e) && max.same_as(e);}
 
-void Interval::include(const Interval &i) {
-    max = Interval::make_max(max, i.max);
-    min = Interval::make_min(min, i.min);
-}
+    /** Does the interval have a finite least upper bound */
+    bool has_upper_bound() const {return !max.same_as(pos_inf) && !is_empty();}
 
-void Interval::include(Expr e) {
-    max = Interval::make_max(max, e);
-    min = Interval::make_min(min, e);
-}
+    /** Does the interval have a finite greatest lower bound */
+    bool has_lower_bound() const {return !min.same_as(neg_inf) && !is_empty();}
 
-Interval Interval::make_union(const Interval &a, const Interval &b) {
-    Interval result = a;
-    result.include(b);
-    return result;
-}
+    /** Does the interval have a finite upper and lower bound */
+    bool is_bounded() const {return has_upper_bound() && has_lower_bound();}
 
-Interval Interval::make_intersection(const Interval &a, const Interval &b) {
-    return Interval(Interval::make_max(a.min, b.min),
-                    Interval::make_min(a.max, b.max));
-}
+    /** Is the interval the same as another interval */
+    bool same_as(const Interval &other) {return min.same_as(other.min) && max.same_as(other.max);}
 
-// Use Handle types for positive and negative infinity, to prevent
-// accidentally doing arithmetic on them.
-Expr Interval::pos_inf = Variable::make(Handle(), "pos_inf");
-Expr Interval::neg_inf = Variable::make(Handle(), "neg_inf");
+    /** Expand the interval to include another Interval */
+    EXPORT void include(const Interval &i);
 
+    /** Expand the interval to include an Expr */
+    EXPORT void include(Expr e);
 
-namespace {
-void check(Interval result, Interval expected, int line) {
-    internal_assert(equal(result.min, expected.min) &&
-                    equal(result.max, expected.max))
-        << "Interval test on line " << line << " failed\n"
-        << "  Expected [" << expected.min << ", " << expected.max << "]\n"
-        << "  Got      [" << result.min << ", " << result.max << "]\n";
-}
-}
+    /** Construct the smallest interval containing two intervals. */
+    EXPORT static Interval make_union(const Interval &a, const Interval &b);
 
-void interval_test() {
-    Interval e = Interval::everything();
-    Interval n = Interval::nothing();
-    Expr x = Variable::make(Int(32), "x");
-    Interval xp{x, Interval::pos_inf};
-    Interval xn{Interval::neg_inf, x};
-    Interval xx{x, x};
+    /** Construct the largest interval contained within two intervals. */
+    EXPORT static Interval make_intersection(const Interval &a, const Interval &b);
 
-    internal_assert(e.is_everything());
-    internal_assert(!e.has_upper_bound());
-    internal_assert(!e.has_lower_bound());
-    internal_assert(!e.is_empty());
-    internal_assert(!e.is_bounded());
-    internal_assert(!e.is_single_point());
+    /** An eagerly-simplifying max of two Exprs that respects infinities. */
+    EXPORT static Expr make_max(Expr a, Expr b);
 
-    internal_assert(!n.is_everything());
-    internal_assert(!n.has_upper_bound());
-    internal_assert(!n.has_lower_bound());
-    internal_assert(n.is_empty());
-    internal_assert(!n.is_bounded());
-    internal_assert(!n.is_single_point());
+    /** An eagerly-simplifying min of two Exprs that respects infinities. */
+    EXPORT static Expr make_min(Expr a, Expr b);
 
-    internal_assert(!xp.is_everything());
-    internal_assert(!xp.has_upper_bound());
-    internal_assert(xp.has_lower_bound());
-    internal_assert(!xp.is_empty());
-    internal_assert(!xp.is_bounded());
-    internal_assert(!xp.is_single_point());
+};
 
-    internal_assert(!xn.is_everything());
-    internal_assert(xn.has_upper_bound());
-    internal_assert(!xn.has_lower_bound());
-    internal_assert(!xn.is_empty());
-    internal_assert(!xn.is_bounded());
-    internal_assert(!xn.is_single_point());
-
-    internal_assert(!xx.is_everything());
-    internal_assert(xx.has_upper_bound());
-    internal_assert(xx.has_lower_bound());
-    internal_assert(!xx.is_empty());
-    internal_assert(xx.is_bounded());
-    internal_assert(xx.is_single_point());
-
-    check(Interval::make_union(xp, xn), e, __LINE__);
-    check(Interval::make_union(e, xn), e, __LINE__);
-    check(Interval::make_union(xn, e), e, __LINE__);
-    check(Interval::make_union(xn, n), xn, __LINE__);
-    check(Interval::make_union(n, xp), xp, __LINE__);
-    check(Interval::make_union(xp, xp), xp, __LINE__);
-
-    check(Interval::make_intersection(xp, xn), Interval::single_point(x), __LINE__);
-    check(Interval::make_intersection(e, xn), xn, __LINE__);
-    check(Interval::make_intersection(xn, e), xn, __LINE__);
-    check(Interval::make_intersection(xn, n), n, __LINE__);
-    check(Interval::make_intersection(n, xp), n, __LINE__);
-    check(Interval::make_intersection(xp, xp), xp, __LINE__);
-
-    check(Interval::make_union({3, Interval::pos_inf}, {5, Interval::pos_inf}), {3, Interval::pos_inf}, __LINE__);
-    check(Interval::make_intersection({3, Interval::pos_inf}, {5, Interval::pos_inf}), {5, Interval::pos_inf}, __LINE__);
-
-    check(Interval::make_union({Interval::neg_inf, 3}, {Interval::neg_inf, 5}), {Interval::neg_inf, 5}, __LINE__);
-    check(Interval::make_intersection({Interval::neg_inf, 3}, {Interval::neg_inf, 5}), {Interval::neg_inf, 3}, __LINE__);
-
-    check(Interval::make_union({3, 4}, {9, 10}), {3, 10}, __LINE__);
-    check(Interval::make_intersection({3, 4}, {9, 10}), {9, 4}, __LINE__);
-
-    check(Interval::make_union({3, 9}, {4, 10}), {3, 10}, __LINE__);
-    check(Interval::make_intersection({3, 9}, {4, 10}), {4, 9}, __LINE__);
-
-    std::cout << "Interval test passed" << std::endl;
-}
-
+EXPORT void interval_test();
 
 }
 }
+
+#endif
