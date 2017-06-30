@@ -174,7 +174,7 @@ class Array : public NodeRef {
    * \return reference to self.
    */
   Array<T>& operator=(const Array<T> & other) {
-    node_ = std::move(other.node_);
+    node_ = other.node_;
     return *this;
   }
   /*!
@@ -367,7 +367,7 @@ class Map : public NodeRef {
    * \return reference to self.
    */
   Map<K, V>& operator=(const Map<K, V> & other) {
-    node_ = std::move(other.node_);
+    node_ = other.node_;
     return *this;
   }
   /*!
