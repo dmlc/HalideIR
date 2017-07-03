@@ -272,19 +272,6 @@ class Array : public NodeRef {
   inline reverse_iterator rend() const {
     return reverse_iterator(static_cast<const ArrayNode*>(node_.get())->data.rend());
   }
-
-  friend std::ostream& operator<<(std::ostream &os, const Array<T>& r) {  // NOLINT(*)
-    for (size_t i = 0; i < r.size(); ++i) {
-      if (i == 0) {
-        os << '[';
-      } else {
-        os << ", ";
-      }
-      os << r[i];
-    }
-    os << ']';
-    return os;
-  }
 };
 
 /*!
@@ -466,21 +453,6 @@ class Map : public NodeRef {
   /*! \return begin iterator */
   inline iterator find(const K& key) const {
     return iterator(static_cast<const MapNode*>(node_.get())->data.find(key.node_));
-  }
-
-  friend std::ostream& operator<<(std::ostream &os, const Map<K, V>& r) {  // NOLINT(*)
-    auto begin = r.begin(), end = r.end();
-    for (auto i = begin; i != end; ++i) {
-      if (i == begin) {
-        os << '{';
-      } else {
-        os << ", ";
-      }
-      auto kv = *i;
-      os << kv.first << ": "  << kv.second;
-    }
-    os << '}';
-    return os;
   }
 };
 
