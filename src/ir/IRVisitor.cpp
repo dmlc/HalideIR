@@ -150,6 +150,7 @@ void IRVisitor::visit(const AttrStmt *op, const Stmt &) {
 void IRVisitor::visit(const AssertStmt *op, const Stmt &) {
     op->condition.accept(this);
     op->message.accept(this);
+    op->body.accept(this);
 }
 
 void IRVisitor::visit(const ProducerConsumer *op, const Stmt &) {
@@ -387,6 +388,7 @@ void IRGraphVisitor::visit(const LetStmt *op, const Stmt &) {
 void IRGraphVisitor::visit(const AssertStmt *op, const Stmt &) {
     include(op->condition);
     include(op->message);
+    include(op->body);
 }
 
 void IRGraphVisitor::visit(const ProducerConsumer *op, const Stmt &) {

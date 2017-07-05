@@ -228,7 +228,7 @@ Stmt AttrStmt::make(NodeRef node, std::string attr_key, Expr value, Stmt body) {
   return Stmt(n);
 }
 
-Stmt AssertStmt::make(Expr condition, Expr message) {
+Stmt AssertStmt::make(Expr condition, Expr message, Stmt body) {
     internal_assert(condition.defined()) << "AssertStmt of undefined\n";
     internal_assert(message.type() == Int(32) ||
                     message.as<StringImm>()) << "AssertStmt message must be an int or string:"
@@ -237,6 +237,7 @@ Stmt AssertStmt::make(Expr condition, Expr message) {
     std::shared_ptr<AssertStmt> node = std::make_shared<AssertStmt>();
     node->condition = std::move(condition);
     node->message = std::move(message);
+    node->body = std::move(body);
     return Stmt(node);
 }
 

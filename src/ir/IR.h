@@ -422,12 +422,20 @@ struct AssertStmt : public StmtNode<AssertStmt> {
     // if condition then val else error out with message
     Expr condition;
     Expr message;
+    // The statement which this assertion holds true.
+    // body will get executed immediately after the assert check.
+    // The introduction of makes it easy to write visitor pattern
+    // that takes benefit of assertion invariant.
+    // We can simply add the invariant when we see the assertion
+    // and remove it after we visit body.
+    Stmt body;
 
-    EXPORT static Stmt make(Expr condition, Expr message);
+    EXPORT static Stmt make(Expr condition, Expr message, Stmt body);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("condition", &condition);
         v->Visit("message", &message);
+        v->Visit("body", &body);
     }
     static const IRNodeType _type_info = IRNodeType::AssertStmt;
     static constexpr const char* _type_key = "AssertStmt";

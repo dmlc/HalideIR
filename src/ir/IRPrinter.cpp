@@ -379,6 +379,7 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
     p->stream << ", ";
     p->print(op->message);
     p->stream << ")\n";
+    p->print(op->body);
 });
 
 TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
