@@ -205,11 +205,14 @@ void IRMutator::visit(const AttrStmt *op, const Stmt &s) {
 void IRMutator::visit(const AssertStmt *op, const Stmt &s) {
     Expr condition = mutate(op->condition);
     Expr message = mutate(op->message);
+    Stmt body = mutate(op->body);
 
-    if (condition.same_as(op->condition) && message.same_as(op->message)) {
+    if (condition.same_as(op->condition) &&
+        message.same_as(op->message) &&
+        body.same_as(op->body)) {
       stmt = s;
     } else {
-      stmt = AssertStmt::make(condition, message);
+      stmt = AssertStmt::make(condition, message, body);
     }
 }
 

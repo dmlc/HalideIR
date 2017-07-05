@@ -4704,7 +4704,7 @@ private:
                              << stmt << "\n";
             }
         } else if (a && is_one(a->condition)) {
-            stmt = Evaluate::make(0);
+            stmt = a->body;
         }
     }
 
@@ -5891,8 +5891,8 @@ void check_boolean() {
     // The construct
     //     if (var == expr) then a else b;
     // was being simplified incorrectly, but *only* if var was of type Bool.
-    Stmt then_clause = AssertStmt::make(b2, Expr(22));
-    Stmt else_clause = AssertStmt::make(b2, Expr(33));
+    Stmt then_clause = AssertStmt::make(b2, Expr(22), Evaluate::make(0));
+    Stmt else_clause = AssertStmt::make(b2, Expr(33), Evaluate::make(0));
     check(IfThenElse::make(b1 == b2, then_clause, else_clause),
           IfThenElse::make(b1 == b2, then_clause, else_clause));
 

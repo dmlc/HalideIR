@@ -375,6 +375,7 @@ void IRComparer::visit(const AssertStmt *op, const Stmt &s) {
 
     compare_expr(node->condition, op->condition);
     compare_expr(node->message, op->message);
+    compare_stmt(node->body, op->body);
 }
 
 void IRComparer::visit(const ProducerConsumer *op, const Stmt &s) {

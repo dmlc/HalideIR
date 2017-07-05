@@ -53,6 +53,9 @@ We keep old files in old code style, but use Google C style in the newly added f
   - Remove Parameter, BufferPtr from Variable, Call, Load
   - This simplifies dependency, we also find it is cleaner to simply use Variable
     for Parameter.
+- AssertStmt
+  - Add body field to AssertStmt, which represents the scope where the assert condition holds
+  - This makes it easier to do Visitor pattern that take benefit of the scope assert information.
 - AttrStmt
   - This is a new Stmt that can be used to annotate attribute of certain things
     (e.g. content type of buffer).
