@@ -29,3 +29,6 @@
 *.app
 *~
 build
+
+# Miscellany
+tags
