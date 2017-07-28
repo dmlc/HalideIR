@@ -33,6 +33,7 @@ class AttrVisitor {
   virtual void Visit(const char* key, int* value) = 0;
   virtual void Visit(const char* key, bool* value) = 0;
   virtual void Visit(const char* key, std::string* value) = 0;
+  virtual void Visit(const char* key, void** value) = 0;
   virtual void Visit(const char* key, Type* value) = 0;
   virtual void Visit(const char* key, NodeRef* value) = 0;
   template<typename ENum,
