@@ -346,7 +346,7 @@ struct Broadcast : public ExprNode<Broadcast> {
 
 /** A let expression, like you might find in a functional
  * language. Within the expression \ref Let::body, instances of the Var
- * node \ref Let::name refer to \ref Let::value. */
+ * node \ref Let::var refer to \ref Let::value. */
 struct Let : public ExprNode<Let> {
     VarExpr var;
     Expr value, body;
