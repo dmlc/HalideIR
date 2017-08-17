@@ -1,7 +1,8 @@
 # HalideIR: Symbolic Arithmetic IR Module
 
 HalideIR is a base module for building symbolic expression and arithmetic simplification
-for building new DSLs. It is isolated and refactored from Halide project.
+for building new DSLs. It is isolated and refactored from part of Halide project (credit should go to the original authors).
+It is used in the TVM project.
 
 ## Motivation
 
