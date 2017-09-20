@@ -2,7 +2,10 @@
 
 HalideIR is a base module for building symbolic expression and arithmetic simplification
 for building new DSLs. It is isolated and refactored from part of Halide project (credit should go to the original authors).
-It is used in the TVM project.
+It is used in the [TVM](https://github.com/dmlc/tvm) project.
+
+Note that some portions of the TVM compiler outside of this folder are also adapted from Halide codebase,
+where we needed similar logic (e.g loop vectorization). These are commented where they occur.
 
 ## Motivation
 
