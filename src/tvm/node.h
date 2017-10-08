@@ -24,7 +24,7 @@ class NodeRef;
  * \brief Visitor class to each node content.
  *  The content is going to be called for each field.
  */
-class AttrVisitor {
+class EXPORT AttrVisitor {
  public:
 //! \cond Doxygen_Suppress
   virtual void Visit(const char* key, double* value) = 0;
@@ -50,7 +50,7 @@ class AttrVisitor {
  * \brief base class of node container in DSL AST.
  *  All object's internal is stored as std::shared_ptr<Node>
  */
-class Node {
+class EXPORT Node {
  public:
   /*! \brief virtual destructor */
   virtual ~Node() {}
