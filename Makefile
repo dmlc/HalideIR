@@ -1,6 +1,5 @@
-LDFLAGS = -pthread -lm
-CFLAGS =  -std=c++11 -Wall -O2\
-	 -Iinclude -Idmlc-core/include -Isrc -fPIC
+LDFLAGS += -pthread -lm
+CFLAGS +=  -std=c++11 -Iinclude -Idmlc-core/include -Isrc -fPIC
 
 ifdef no_rtti
 	CFLAGS += -fno-rtti
