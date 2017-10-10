@@ -82,7 +82,11 @@ IRPrinter::IRPrinter(ostream &s) : stream(s), indent(0) {
 
 void IRPrinter::print(const NodeRef& ir) {
     static const FType& f = vtable();
-    f(ir, this);
+    if (!ir.defined()) {
+        stream << "(undefined)";
+    } else {
+        f(ir, this);
+    }
 }
 
 
