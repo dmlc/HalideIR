@@ -7,6 +7,8 @@
 #include "Debug.h"
 #include "TypeBase.h"
 
+#include <dmlc/logging.h>
+
 namespace Halide {
 
 /** Query whether Halide was compiled with exceptions. */
@@ -136,8 +138,11 @@ class Voidifier {
 #define user_warning              Halide::Internal::ErrorReport(__FILE__, __LINE__, nullptr, Halide::Internal::ErrorReport::User | Halide::Internal::ErrorReport::Warning)
 #define halide_runtime_error      Halide::Internal::ErrorReport(__FILE__, __LINE__, nullptr, Halide::Internal::ErrorReport::User | Halide::Internal::ErrorReport::Runtime)
 
-#define internal_assert(c)        _halide_internal_assertion(c, 0)
-#define user_assert(c)            _halide_internal_assertion(c, Halide::Internal::ErrorReport::User)
+// #define internal_assert(c)        _halide_internal_assertion(c, 0)
+// #define user_assert(c)            _halide_internal_assertion(c, Halide::Internal::ErrorReport::User)
+
+#define internal_assert CHECK
+#define user_assert CHECK
 
 // The nicely named versions get cleaned up at the end of Halide.h,
 // but user code might want to do halide-style user_asserts (e.g. the
