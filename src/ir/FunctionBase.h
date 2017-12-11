@@ -6,8 +6,8 @@
  *  This is used because Function is a high level object that can contain schedule,
  *  which could have many variations. Removing FunctionContent dep from IR makes IR minimum.
  */
-#ifndef HALIDE_IR_FUNCTION_BASE_H_
-#define HALIDE_IR_FUNCTION_BASE_H_
+#ifndef HALIDEIR_IR_FUNCTION_BASE_H_
+#define HALIDEIR_IR_FUNCTION_BASE_H_
 
 #include <memory>
 #include "Expr.h"
@@ -48,4 +48,4 @@ inline const FunctionBaseNode* FunctionRef::operator->() const {
 }  // namespace IR
 }  // namespace HalideIR
 
-#endif  // HALIDE_IR_FUNCTION_BASE_H_
+#endif  // HALIDEIR_IR_FUNCTION_BASE_H_

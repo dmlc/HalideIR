@@ -1,5 +1,5 @@
-#ifndef HALIDE_EXPR_H
-#define HALIDE_EXPR_H
+#ifndef HALIDEIR_EXPR_H
+#define HALIDEIR_EXPR_H
 
 /** \file
  * Base classes for Halide expressions (\ref HalideIR::Expr) and statements (\ref HalideIR::Internal::Stmt)

@@ -1,5 +1,5 @@
-#ifndef HALIDE_TYPE_H
-#define HALIDE_TYPE_H
+#ifndef HALIDEIR_TYPE_H
+#define HALIDEIR_TYPE_H
 
 #include <stdint.h>
 #include "TypeBase.h"
@@ -121,7 +121,7 @@ struct halide_c_type_to_name {
   static const bool known_type = false;
 };
 
-#define HALIDE_DECLARE_EXTERN_TYPE(TypeType, Type)                      \
+#define HALIDEIR_DECLARE_EXTERN_TYPE(TypeType, Type)                      \
     template<> struct halide_c_type_to_name<Type> {                     \
         static const bool known_type = true;                            \
         static halide_cplusplus_type_name name() {                      \
@@ -129,22 +129,22 @@ struct halide_c_type_to_name {
         }                                                               \
     }
 
-#define HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(T)     HALIDE_DECLARE_EXTERN_TYPE(Simple, T)
-#define HALIDE_DECLARE_EXTERN_STRUCT_TYPE(T)     HALIDE_DECLARE_EXTERN_TYPE(Struct, T)
-#define HALIDE_DECLARE_EXTERN_CLASS_TYPE(T)      HALIDE_DECLARE_EXTERN_TYPE(Class, T)
-#define HALIDE_DECLARE_EXTERN_UNION_TYPE(T)      HALIDE_DECLARE_EXTERN_TYPE(Union, T)
+#define HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(T)     HALIDEIR_DECLARE_EXTERN_TYPE(Simple, T)
+#define HALIDEIR_DECLARE_EXTERN_STRUCT_TYPE(T)     HALIDEIR_DECLARE_EXTERN_TYPE(Struct, T)
+#define HALIDEIR_DECLARE_EXTERN_CLASS_TYPE(T)      HALIDEIR_DECLARE_EXTERN_TYPE(Class, T)
+#define HALIDEIR_DECLARE_EXTERN_UNION_TYPE(T)      HALIDEIR_DECLARE_EXTERN_TYPE(Union, T)
 
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(bool);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(int8_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(uint8_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(int16_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(uint16_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(int32_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(uint32_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(int64_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(uint64_t);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(float);
-HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(double);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(bool);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(int8_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(uint8_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(int16_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(uint16_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(int32_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(uint32_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(int64_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(uint64_t);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(float);
+HALIDEIR_DECLARE_EXTERN_SIMPLE_TYPE(double);
 
 // You can make arbitrary user-defined types be "Known" using the
 // macro above. This is useful for making Param<> arguments for
@@ -154,7 +154,7 @@ HALIDE_DECLARE_EXTERN_SIMPLE_TYPE(double);
 //
 //    ...
 //
-//    HALIDE_DECLARE_EXTERN_STRUCT_TYPE(MyFunStruct);
+//    HALIDEIR_DECLARE_EXTERN_STRUCT_TYPE(MyFunStruct);
 //
 //    ...
 //

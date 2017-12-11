@@ -1,5 +1,5 @@
-#ifndef HALIDE_SIMPLIFY_H
-#define HALIDE_SIMPLIFY_H
+#ifndef HALIDEIR_SIMPLIFY_H
+#define HALIDEIR_SIMPLIFY_H
 
 /** \file
  * Methods for simplifying halide statements and expressions

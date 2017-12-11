@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_PRINTER_H
-#define HALIDE_IR_PRINTER_H
+#ifndef HALIDEIR_IR_PRINTER_H
+#define HALIDEIR_IR_PRINTER_H
 
 /** \file
  * This header file defines operators that let you dump a Halide

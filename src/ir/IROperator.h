@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_OPERATOR_H
-#define HALIDE_IR_OPERATOR_H
+#ifndef HALIDEIR_IR_OPERATOR_H
+#define HALIDEIR_IR_OPERATOR_H
 
 /** \file
  *

@@ -1,5 +1,5 @@
-#ifndef HALIDE_SCOPE_H
-#define HALIDE_SCOPE_H
+#ifndef HALIDEIR_SCOPE_H
+#define HALIDEIR_SCOPE_H
 
 #include <string>
 #include <map>

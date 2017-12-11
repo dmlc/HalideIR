@@ -1,5 +1,5 @@
-#ifndef HALIDE_ERROR_H
-#define HALIDE_ERROR_H
+#ifndef HALIDEIR_ERROR_H
+#define HALIDEIR_ERROR_H
 
 #include <sstream>
 #include <stdexcept>
@@ -77,7 +77,7 @@ struct ErrorReport {
     EXPORT ErrorReport(const char *f, int l, const char *cs, int flags);
 
     // Just a trick used to convert RValue into LValue
-    HALIDE_ALWAYS_INLINE ErrorReport& ref() { return *this; }
+    HALIDEIR_ALWAYS_INLINE ErrorReport& ref() { return *this; }
 
     template<typename T>
     ErrorReport &operator<<(const T &x) {
@@ -106,10 +106,10 @@ struct ErrorReport {
 // expression to void (to match the condition-is-false case).
 class Voidifier {
  public:
-  HALIDE_ALWAYS_INLINE Voidifier() {}
+  HALIDEIR_ALWAYS_INLINE Voidifier() {}
   // This has to be an operator with a precedence lower than << but
   // higher than ?:
-  HALIDE_ALWAYS_INLINE void operator&(ErrorReport&) {}
+  HALIDEIR_ALWAYS_INLINE void operator&(ErrorReport&) {}
 };
 
 /**

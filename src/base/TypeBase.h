@@ -1,5 +1,5 @@
-#ifndef HALIDE_TYPEBASE_H
-#define HALIDE_TYPEBASE_H
+#ifndef HALIDEIR_TYPEBASE_H
+#define HALIDEIR_TYPEBASE_H
 
 // type handling code stripped from Halide runtime
 
@@ -28,11 +28,11 @@ typedef enum halide_type_code_t
 
 // Note that while __attribute__ can go before or after the declaration,
 // __declspec apparently is only allowed before.
-#ifndef HALIDE_ATTRIBUTE_ALIGN
+#ifndef HALIDEIR_ATTRIBUTE_ALIGN
     #ifdef _MSC_VER
-        #define HALIDE_ATTRIBUTE_ALIGN(x) __declspec(align(x))
+        #define HALIDEIR_ATTRIBUTE_ALIGN(x) __declspec(align(x))
     #else
-        #define HALIDE_ATTRIBUTE_ALIGN(x) __attribute__((aligned(x)))
+        #define HALIDEIR_ATTRIBUTE_ALIGN(x) __attribute__((aligned(x)))
     #endif
 #endif
 
@@ -44,16 +44,16 @@ typedef enum halide_type_code_t
 struct halide_type_t {
     /** The basic type code: signed integer, unsigned integer, or floating point. */
 #if __cplusplus >= 201103L
-    HALIDE_ATTRIBUTE_ALIGN(1) halide_type_code_t code; // halide_type_code_t
+    HALIDEIR_ATTRIBUTE_ALIGN(1) halide_type_code_t code; // halide_type_code_t
 #else
-    HALIDE_ATTRIBUTE_ALIGN(1) uint8_t code; // halide_type_code_t
+    HALIDEIR_ATTRIBUTE_ALIGN(1) uint8_t code; // halide_type_code_t
 #endif
 
     /** The number of bits of precision of a single scalar value of this type. */
-    HALIDE_ATTRIBUTE_ALIGN(1) uint8_t bits;
+    HALIDEIR_ATTRIBUTE_ALIGN(1) uint8_t bits;
 
     /** How many elements in a vector. This is 1 for scalar types. */
-    HALIDE_ATTRIBUTE_ALIGN(2) uint16_t lanes;
+    HALIDEIR_ATTRIBUTE_ALIGN(2) uint16_t lanes;
 
 #ifdef __cplusplus
     /** Construct a runtime representation of a Halide type from:
@@ -173,9 +173,9 @@ template<typename T> halide_type_t halide_type_of() {
 
 // it is not necessary, and may produce warnings for some build configurations.
 #ifdef _MSC_VER
-#define HALIDE_ALWAYS_INLINE __forceinline
+#define HALIDEIR_ALWAYS_INLINE __forceinline
 #else
-#define HALIDE_ALWAYS_INLINE __attribute__((always_inline)) inline
+#define HALIDEIR_ALWAYS_INLINE __attribute__((always_inline)) inline
 #endif
 
-#endif // HALIDE_HALIDERUNTIME_H
+#endif // HALIDEIR_HALIDERUNTIME_H

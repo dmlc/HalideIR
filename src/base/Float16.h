@@ -1,5 +1,5 @@
-#ifndef HALIDE_FLOAT16_H
-#define HALIDE_FLOAT16_H
+#ifndef HALIDEIR_FLOAT16_H
+#define HALIDEIR_FLOAT16_H
 
 #include <stdint.h>
 #include <string>
@@ -202,7 +202,7 @@ private:
 }  // namespace HalideIR
 
 template<>
-HALIDE_ALWAYS_INLINE halide_type_t halide_type_of<HalideIR::float16_t>() {
+HALIDEIR_ALWAYS_INLINE halide_type_t halide_type_of<HalideIR::float16_t>() {
     return halide_type_t(halide_type_float, 16);
 }
 

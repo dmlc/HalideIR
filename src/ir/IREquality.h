@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_EQUALITY_H
-#define HALIDE_IR_EQUALITY_H
+#ifndef HALIDEIR_IR_EQUALITY_H
+#define HALIDEIR_IR_EQUALITY_H
 
 /** \file
  * Methods to test Exprs and Stmts for equality of value

@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_H
-#define HALIDE_IR_H
+#ifndef HALIDEIR_IR_H
+#define HALIDEIR_IR_H
 
 /** \file
  * Subtypes for Halide expressions (\ref HalideIR::Expr) and statements (\ref HalideIR::Internal::Stmt)

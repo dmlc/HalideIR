@@ -1,5 +1,5 @@
-#ifndef HALIDE_MODULUS_REMAINDER_H
-#define HALIDE_MODULUS_REMAINDER_H
+#ifndef HALIDEIR_MODULUS_REMAINDER_H
+#define HALIDEIR_MODULUS_REMAINDER_H
 
 /** \file
  * Routines for statically determining what expressions are divisible by.

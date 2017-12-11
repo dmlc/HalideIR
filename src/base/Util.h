@@ -7,8 +7,8 @@
 #include <assert.h>
 #endif
 
-#ifndef HALIDE_UTIL_H
-#define HALIDE_UTIL_H
+#ifndef HALIDEIR_UTIL_H
+#define HALIDEIR_UTIL_H
 
 /** \file
  * Various utility functions used internally Halide. */

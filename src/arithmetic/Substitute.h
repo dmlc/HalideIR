@@ -1,5 +1,5 @@
-#ifndef HALIDE_SUBSTITUTE_H
-#define HALIDE_SUBSTITUTE_H
+#ifndef HALIDEIR_SUBSTITUTE_H
+#define HALIDEIR_SUBSTITUTE_H
 
 /** \file
  *

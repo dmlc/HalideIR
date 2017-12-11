@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_MUTATOR_H
-#define HALIDE_IR_MUTATOR_H
+#ifndef HALIDEIR_IR_MUTATOR_H
+#define HALIDEIR_IR_MUTATOR_H
 
 /** \file
  * Defines a base class for passes over the IR that modify it

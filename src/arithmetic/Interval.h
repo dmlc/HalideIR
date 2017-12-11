@@ -1,5 +1,5 @@
-#ifndef HALIDE_INTERVAL_H
-#define HALIDE_INTERVAL_H
+#ifndef HALIDEIR_INTERVAL_H
+#define HALIDEIR_INTERVAL_H
 
 /** \file
  * Defines the Interval class
