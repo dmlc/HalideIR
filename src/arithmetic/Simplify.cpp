@@ -20,7 +20,7 @@
 #define snprintf _snprintf
 #endif
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 using std::string;

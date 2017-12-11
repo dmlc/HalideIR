@@ -10,7 +10,7 @@
 
 #include "ir/IR.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** Substitute variables with the given pointer with the replacement

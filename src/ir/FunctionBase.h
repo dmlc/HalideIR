@@ -12,7 +12,7 @@
 #include <memory>
 #include "Expr.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace IR {
 
 // Internal node container of Range
@@ -46,6 +46,6 @@ inline const FunctionBaseNode* FunctionRef::operator->() const {
 }
 
 }  // namespace IR
-}  // namespace Halide
+}  // namespace HalideIR
 
 #endif  // HALIDE_IR_FUNCTION_BASE_H_

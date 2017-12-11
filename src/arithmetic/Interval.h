@@ -7,7 +7,7 @@
 
 #include "ir/Expr.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** A class to represent ranges of Exprs. Can be unbounded above or below. */

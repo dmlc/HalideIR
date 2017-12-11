@@ -1,6 +1,6 @@
 #include "IRVisitor.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 IRVisitor::~IRVisitor() {

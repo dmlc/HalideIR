@@ -11,7 +11,7 @@
 #include "Interval.h"
 #include "ModulusRemainder.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** Perform a a wide range of simplifications to expressions and

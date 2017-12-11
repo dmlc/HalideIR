@@ -9,7 +9,7 @@
 #include <memory>
 #include "Expr.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace IR {
 
 // Internal node container of Range
@@ -78,6 +78,6 @@ inline std::ostream& operator<<(std::ostream &os, const Range& r) {  // NOLINT(*
 }
 
 }  // namespace IR
-}  // namespace Halide
+}  // namespace HalideIR
 
 #endif  // HALIDE_IR_H_

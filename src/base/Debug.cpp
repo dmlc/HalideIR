@@ -1,6 +1,6 @@
 #include "Debug.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 int debug::debug_level() {

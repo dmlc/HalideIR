@@ -4,7 +4,7 @@
 #include "IRPrinter.h"
 #include "IROperator.h"
 
-namespace Halide {
+namespace HalideIR {
 
 using std::ostream;
 using std::vector;

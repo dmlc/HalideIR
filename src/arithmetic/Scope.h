@@ -16,7 +16,7 @@
  * Defines the Scope class, which is used for keeping track of names in a scope while traversing IR
  */
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** A stack which can store one item very efficiently. Using this

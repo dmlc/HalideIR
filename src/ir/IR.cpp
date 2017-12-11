@@ -2,7 +2,7 @@
 //#include "IRPrinter.h"
 #include "IRVisitor.h"
 
-namespace Halide {
+namespace HalideIR {
 
 Expr::Expr(int8_t x) : Expr(Internal::IntImm::make(Int(8), x)) {}
 Expr::Expr(int16_t x) : Expr(Internal::IntImm::make(Int(16), x)) {}

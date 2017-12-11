@@ -2,7 +2,7 @@
 #define HALIDE_IR_H
 
 /** \file
- * Subtypes for Halide expressions (\ref Halide::Expr) and statements (\ref Halide::Internal::Stmt)
+ * Subtypes for Halide expressions (\ref HalideIR::Expr) and statements (\ref HalideIR::Internal::Stmt)
  */
 
 #include <string>
@@ -16,7 +16,7 @@
 #include "Range.h"
 #include "FunctionBase.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 using IR::FunctionRef;

@@ -4,9 +4,9 @@
 #include <limits>
 #include <cmath>
 
-using namespace Halide;
+using namespace HalideIR;
 
-namespace Halide {
+namespace HalideIR {
 
 // An optional implementation of float16_t
 // Float16 conversion op that removes LLVM dep,

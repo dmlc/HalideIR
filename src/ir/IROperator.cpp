@@ -8,7 +8,7 @@
 #include "IREquality.h"
 #include "base/Debug.h"
 
-namespace Halide {
+namespace HalideIR {
 
 // Evaluate a float polynomial efficiently, taking instruction latency
 // into account. The high order terms come first. n is the number of

@@ -8,7 +8,7 @@
 #include "IRVisitor.h"
 #include <unordered_map>
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** A base class for passes over the IR which modify it

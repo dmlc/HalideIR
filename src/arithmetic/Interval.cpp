@@ -2,7 +2,7 @@
 #include "ir/IROperator.h"
 #include "ir/IREquality.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 // This is called repeatedly by bounds inference and the solver to

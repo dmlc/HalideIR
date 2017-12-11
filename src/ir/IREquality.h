@@ -7,7 +7,7 @@
 
 #include "IR.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** A compare struct suitable for use in std::map and std::set that
