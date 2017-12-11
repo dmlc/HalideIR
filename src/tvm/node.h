@@ -15,7 +15,7 @@
 /** namespace of tvm base code */
 namespace tvm {
 
-using Halide::Type;
+using HalideIR::Type;
 // forward declaration
 class Node;
 class NodeRef;
@@ -267,7 +267,7 @@ struct NodeEqual {
 }  // namespace tvm
 
 // expose the data structure to HalideIR
-namespace Halide {
+namespace HalideIR {
 namespace IR {
 
 using tvm::Node;
@@ -275,7 +275,7 @@ using tvm::NodeRef;
 using tvm::AttrVisitor;
 
 }  // namespace IR
-}  // namespace Halide
+}  // namespace HalideIR
 
 namespace std {
 template <>

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 std::vector<std::string> split_string(const std::string &source, const std::string &delim) {
     std::vector<std::string> elements;

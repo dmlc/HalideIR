@@ -3,7 +3,7 @@
 // TODO(tqchen): remove recursive dep on IR?
 #include "ir/IR.h"
 
-namespace Halide {
+namespace HalideIR {
 
 using std::ostringstream;
 
@@ -25,7 +25,7 @@ int64_t min_int(int bits) {
 }
 
 /** Return an expression which is the maximum value of this type */
-Halide::Expr Type::max() const {
+HalideIR::Expr Type::max() const {
     if (is_vector()) {
         return Internal::Broadcast::make(element_of().max(), lanes());
     } else if (is_int()) {
@@ -49,7 +49,7 @@ Halide::Expr Type::max() const {
 }
 
 /** Return an expression which is the minimum value of this type */
-Halide::Expr Type::min() const {
+HalideIR::Expr Type::min() const {
     if (is_vector()) {
         return Internal::Broadcast::make(element_of().min(), lanes());
     } else if (is_int()) {
@@ -182,18 +182,18 @@ bool Type::can_represent(double x) const {
 }
 
 bool Type::same_handle_type(const Type &other) const {
-    const halide_handle_cplusplus_type *first = handle_type;
-    const halide_handle_cplusplus_type *second = other.handle_type;
+    const halideir_handle_cplusplus_type *first = handle_type;
+    const halideir_handle_cplusplus_type *second = other.handle_type;
 
     if (first == second) {
         return true;
     }
 
     if (first == nullptr) {
-        first = halide_handle_traits<void*>::type_info();
+        first = halideir_handle_traits<void*>::type_info();
     }
     if (second == nullptr) {
-        second = halide_handle_traits<void*>::type_info();
+        second = halideir_handle_traits<void*>::type_info();
     }
 
     return first->inner_name == second->inner_name &&

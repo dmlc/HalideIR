@@ -1,6 +1,6 @@
 #include "Error.h"
 
-namespace Halide {
+namespace HalideIR {
 
 namespace {
 

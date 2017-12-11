@@ -3,13 +3,13 @@
  * \file Range.h
  * \brief The Range data structure
  */
-#ifndef HALIDE_IR_RANGE_H_
-#define HALIDE_IR_RANGE_H_
+#ifndef HALIDEIR_IR_RANGE_H_
+#define HALIDEIR_IR_RANGE_H_
 
 #include <memory>
 #include "Expr.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace IR {
 
 // Internal node container of Range
@@ -78,6 +78,6 @@ inline std::ostream& operator<<(std::ostream &os, const Range& r) {  // NOLINT(*
 }
 
 }  // namespace IR
-}  // namespace Halide
+}  // namespace HalideIR
 
-#endif  // HALIDE_IR_H_
+#endif  // HALIDEIR_IR_H_

@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_VISITOR_H
-#define HALIDE_IR_VISITOR_H
+#ifndef HALIDEIR_IR_VISITOR_H
+#define HALIDEIR_IR_VISITOR_H
 
 #include "IR.h"
 #include "base/Util.h"
@@ -12,7 +12,7 @@
  * Defines the base class for things that recursively walk over the IR
  */
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** A base class for algorithms that need to recursively walk over the

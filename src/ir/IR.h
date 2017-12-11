@@ -1,8 +1,8 @@
-#ifndef HALIDE_IR_H
-#define HALIDE_IR_H
+#ifndef HALIDEIR_IR_H
+#define HALIDEIR_IR_H
 
 /** \file
- * Subtypes for Halide expressions (\ref Halide::Expr) and statements (\ref Halide::Internal::Stmt)
+ * Subtypes for Halide expressions (\ref HalideIR::Expr) and statements (\ref HalideIR::Internal::Stmt)
  */
 
 #include <string>
@@ -16,7 +16,7 @@
 #include "Range.h"
 #include "FunctionBase.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 using IR::FunctionRef;
@@ -530,7 +530,7 @@ struct Allocate : public StmtNode<Allocate> {
     // returns non-nullptr, the function named be free_function is
     // guaranteed to be called. The free function signature must match
     // that of the code generator dependent free (typically
-    // halide_free). If free_function is left empty, code generator
+    // halideir_free). If free_function is left empty, code generator
     // default will be called.
     Expr new_expr;
     std::string free_function;
@@ -720,7 +720,7 @@ struct Call : public ExprNode<Call> {
         cast_mask,
         select_mask,
         extract_mask_element,
-        size_of_halide_buffer_t;
+        size_of_halideir_buffer_t;
     // If it's a call to another halide function, this call node holds
     // onto a pointer to that function for the purposes of reference
     // counting only. Self-references in update definitions do not

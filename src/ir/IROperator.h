@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_OPERATOR_H
-#define HALIDE_IR_OPERATOR_H
+#ifndef HALIDEIR_IR_OPERATOR_H
+#define HALIDEIR_IR_OPERATOR_H
 
 /** \file
  *
@@ -12,7 +12,7 @@
 #include "IR.h"
 #include "base/Util.h"
 
-namespace Halide {
+namespace HalideIR {
 
 namespace Internal {
 /** Is the expression either an IntImm, a FloatImm, a StringImm, or a
@@ -155,9 +155,9 @@ EXPORT void match_types(Expr &a, Expr &b);
 
 /** Halide's vectorizable transcendentals. */
 // @{
-EXPORT Expr halide_log(const Expr &a);
-EXPORT Expr halide_exp(const Expr &a);
-EXPORT Expr halide_erf(const Expr &a);
+EXPORT Expr halideir_log(const Expr &a);
+EXPORT Expr halideir_exp(const Expr &a);
+EXPORT Expr halideir_erf(const Expr &a);
 // @}
 
 /** Raise an expression to an integer power by repeatedly multiplying
@@ -672,7 +672,7 @@ inline Expr max(const Expr &a, float b) {return max(a, Expr(b));}
  * The expressions are folded from right ie. max(.., max(.., ..)).
  * The arguments can be any mix of types but must all be convertible to Expr. */
 template<typename A, typename B, typename C, typename... Rest,
-         typename std::enable_if<Halide::Internal::all_are_convertible<Expr, Rest...>::value>::type* = nullptr>
+         typename std::enable_if<HalideIR::Internal::all_are_convertible<Expr, Rest...>::value>::type* = nullptr>
 inline Expr max(const A &a, const B &b, const C &c, Rest&&... rest) {
     return max(a, max(b, c, std::forward<Rest>(rest)...));
 }
@@ -716,7 +716,7 @@ inline Expr min(const Expr &a, float b) {return min(a, Expr(b));}
  * The expressions are folded from right ie. min(.., min(.., ..)).
  * The arguments can be any mix of types but must all be convertible to Expr. */
 template<typename A, typename B, typename C, typename... Rest,
-         typename std::enable_if<Halide::Internal::all_are_convertible<Expr, Rest...>::value>::type* = nullptr>
+         typename std::enable_if<HalideIR::Internal::all_are_convertible<Expr, Rest...>::value>::type* = nullptr>
 inline Expr min(const A &a, const B &b, const C &c, Rest&&... rest) {
     return min(a, min(b, c, std::forward<Rest>(rest)...));
 }
@@ -836,7 +836,7 @@ inline Expr select(Expr condition, Expr true_value, Expr false_value) {
  * to the first value for which the condition is true. Returns the
  * final value if all conditions are false. */
 template<typename... Args,
-         typename std::enable_if<Halide::Internal::all_are_convertible<Expr, Args...>::value>::type* = nullptr>
+         typename std::enable_if<HalideIR::Internal::all_are_convertible<Expr, Args...>::value>::type* = nullptr>
 inline Expr select(const Expr &c0, const Expr &v0, const Expr &c1, const Expr &v1, Args&&... args) {
     return select(c0, v0, select(c1, v1, std::forward<Args>(args)...));
 }
@@ -1154,7 +1154,7 @@ inline Expr pow(Expr x, Expr y) {
 inline Expr erf(const Expr &x) {
     user_assert(x.defined()) << "erf of undefined Expr\n";
     user_assert(x.type() == Float(32)) << "erf only takes float arguments\n";
-    return Internal::halide_erf(x);
+    return Internal::halideir_erf(x);
 }
 
 /** Fast approximate cleanly vectorizable log for Float(32). Returns
@@ -1721,9 +1721,9 @@ inline NO_INLINE Expr print_when(const Expr &condition, const Expr &a, Args&&...
 
 /** Create an Expr that that guarantees a precondition.
  * If 'condition' is true, the return value is equal to the first Expr.
- * If 'condition' is false, halide_error() is called, and the return value
+ * If 'condition' is false, halideir_error() is called, and the return value
  * is arbitrary. Any additional arguments after the first Expr are stringified
- * and passed as a user-facing message to halide_error(), similar to print().
+ * and passed as a user-facing message to halideir_error(), similar to print().
  *
  * Note that this essentially *always* inserts a runtime check into the
  * generated code (except when the condition can be proven at compile time);

@@ -1,6 +1,6 @@
 #include "IRMutator.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 using std::vector;

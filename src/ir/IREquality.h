@@ -1,5 +1,5 @@
-#ifndef HALIDE_IR_EQUALITY_H
-#define HALIDE_IR_EQUALITY_H
+#ifndef HALIDEIR_IR_EQUALITY_H
+#define HALIDEIR_IR_EQUALITY_H
 
 /** \file
  * Methods to test Exprs and Stmts for equality of value
@@ -7,7 +7,7 @@
 
 #include "IR.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** A compare struct suitable for use in std::map and std::set that

@@ -20,7 +20,7 @@
 #define snprintf _snprintf
 #endif
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 using std::string;
@@ -4705,7 +4705,7 @@ private:
             // by Halide and is expected to always fail.
             const Call *call = a->message.as<Call>();
             const bool const_false_conditions_expected =
-                call && call->name == "halide_error_specialize_fail";
+                call && call->name == "halideir_error_specialize_fail";
             if (!const_false_conditions_expected) {
                 user_warning << "This pipeline is guaranteed to fail an assertion at runtime: \n"
                              << stmt << "\n";
@@ -6375,20 +6375,20 @@ void simplify_test() {
         Expr r1, r2, r3;
 
         r1 = min(one, two);
-        internal_assert(r1.type() == halide_type_of<uint16_t>());
+        internal_assert(r1.type() == halideir_type_of<uint16_t>());
         r2 = min(one, two, one);
-        internal_assert(r2.type() == halide_type_of<uint16_t>());
+        internal_assert(r2.type() == halideir_type_of<uint16_t>());
         // Explicitly passing 'two' as an Expr, rather than an int, will defeat this logic.
         r3 = min(one, Expr(two), one);
-        internal_assert(r3.type() == halide_type_of<int>());
+        internal_assert(r3.type() == halideir_type_of<int>());
 
         r1 = max(one, two);
-        internal_assert(r1.type() == halide_type_of<uint16_t>());
+        internal_assert(r1.type() == halideir_type_of<uint16_t>());
         r2 = max(one, two, one);
-        internal_assert(r2.type() == halide_type_of<uint16_t>());
+        internal_assert(r2.type() == halideir_type_of<uint16_t>());
         // Explicitly passing 'two' as an Expr, rather than an int, will defeat this logic.
         r3 = max(one, Expr(two), one);
-        internal_assert(r3.type() == halide_type_of<int>());
+        internal_assert(r3.type() == halideir_type_of<int>());
     }
 
     {

@@ -1,5 +1,5 @@
-#ifndef HALIDE_SCOPE_H
-#define HALIDE_SCOPE_H
+#ifndef HALIDEIR_SCOPE_H
+#define HALIDEIR_SCOPE_H
 
 #include <string>
 #include <map>
@@ -16,7 +16,7 @@
  * Defines the Scope class, which is used for keeping track of names in a scope while traversing IR
  */
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** A stack which can store one item very efficiently. Using this

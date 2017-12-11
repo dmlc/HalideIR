@@ -1,6 +1,6 @@
-#ifndef HALIDE_ROUNDING_MODE_H
-#define HALIDE_ROUNDING_MODE_H
-namespace Halide {
+#ifndef HALIDEIR_ROUNDING_MODE_H
+#define HALIDEIR_ROUNDING_MODE_H
+namespace HalideIR {
 
 /** Rounding modes (IEEE754 2008 4.3 Rounding-direction attributes) */
 enum class RoundingMode {

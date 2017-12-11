@@ -1,5 +1,5 @@
-#ifndef HALIDE_SUBSTITUTE_H
-#define HALIDE_SUBSTITUTE_H
+#ifndef HALIDEIR_SUBSTITUTE_H
+#define HALIDEIR_SUBSTITUTE_H
 
 /** \file
  *
@@ -10,7 +10,7 @@
 
 #include "ir/IR.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 /** Substitute variables with the given pointer with the replacement

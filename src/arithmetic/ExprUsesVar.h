@@ -1,5 +1,5 @@
-#ifndef HALIDE_EXPR_USES_VAR_H
-#define HALIDE_EXPR_USES_VAR_H
+#ifndef HALIDEIR_EXPR_USES_VAR_H
+#define HALIDEIR_EXPR_USES_VAR_H
 
 /** \file
  * Defines a method to determine if an expression depends on some variables.
@@ -9,7 +9,7 @@
 #include "ir/IRVisitor.h"
 #include "Scope.h"
 
-namespace Halide {
+namespace HalideIR {
 namespace Internal {
 
 template<typename T>

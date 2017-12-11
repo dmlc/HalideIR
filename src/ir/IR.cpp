@@ -2,7 +2,7 @@
 //#include "IRPrinter.h"
 #include "IRVisitor.h"
 
-namespace Halide {
+namespace HalideIR {
 
 Expr::Expr(int8_t x) : Expr(Internal::IntImm::make(Int(8), x)) {}
 Expr::Expr(int16_t x) : Expr(Internal::IntImm::make(Int(16), x)) {}
@@ -723,6 +723,6 @@ Call::ConstString Call::bool_to_mask = "bool_to_mask";
 Call::ConstString Call::cast_mask = "cast_mask";
 Call::ConstString Call::select_mask = "select_mask";
 Call::ConstString Call::extract_mask_element = "extract_mask_element";
-Call::ConstString Call::size_of_halide_buffer_t = "size_of_halide_buffer_t";
+Call::ConstString Call::size_of_halideir_buffer_t = "size_of_halideir_buffer_t";
 }
 }

@@ -458,13 +458,13 @@ class Map : public NodeRef {
 
 }  // namespace tvm
 
-namespace Halide {
+namespace HalideIR {
 namespace IR {
 
 using tvm::Array;
 using tvm::Map;
 
 }  // namespace IR
-}  // namespace Halide
+}  // namespace HalideIR
 
 #endif  // TVM_CONTAINER_H_

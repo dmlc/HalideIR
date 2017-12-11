@@ -1,5 +1,5 @@
-#ifndef HALIDE_DEBUG_H
-#define HALIDE_DEBUG_H
+#ifndef HALIDEIR_DEBUG_H
+#define HALIDEIR_DEBUG_H
 
 /** \file
  * Defines functions for debug logging during code generation.
@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include "Util.h"
 
-namespace Halide {
+namespace HalideIR {
 
 struct Expr;
 struct Type;
