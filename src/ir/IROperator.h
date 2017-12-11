@@ -155,9 +155,9 @@ EXPORT void match_types(Expr &a, Expr &b);
 
 /** Halide's vectorizable transcendentals. */
 // @{
-EXPORT Expr halide_log(const Expr &a);
-EXPORT Expr halide_exp(const Expr &a);
-EXPORT Expr halide_erf(const Expr &a);
+EXPORT Expr halideir_log(const Expr &a);
+EXPORT Expr halideir_exp(const Expr &a);
+EXPORT Expr halideir_erf(const Expr &a);
 // @}
 
 /** Raise an expression to an integer power by repeatedly multiplying
@@ -1154,7 +1154,7 @@ inline Expr pow(Expr x, Expr y) {
 inline Expr erf(const Expr &x) {
     user_assert(x.defined()) << "erf of undefined Expr\n";
     user_assert(x.type() == Float(32)) << "erf only takes float arguments\n";
-    return Internal::halide_erf(x);
+    return Internal::halideir_erf(x);
 }
 
 /** Fast approximate cleanly vectorizable log for Float(32). Returns
@@ -1721,9 +1721,9 @@ inline NO_INLINE Expr print_when(const Expr &condition, const Expr &a, Args&&...
 
 /** Create an Expr that that guarantees a precondition.
  * If 'condition' is true, the return value is equal to the first Expr.
- * If 'condition' is false, halide_error() is called, and the return value
+ * If 'condition' is false, halideir_error() is called, and the return value
  * is arbitrary. Any additional arguments after the first Expr are stringified
- * and passed as a user-facing message to halide_error(), similar to print().
+ * and passed as a user-facing message to halideir_error(), similar to print().
  *
  * Note that this essentially *always* inserts a runtime check into the
  * generated code (except when the condition can be proven at compile time);

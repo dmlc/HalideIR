@@ -452,7 +452,7 @@ void range_reduce_log(const Expr &input, Expr *reduced, Expr *exponent) {
     *reduced = reinterpret(type, blended);
 }
 
-Expr halide_log(const Expr &x_full) {
+Expr halideir_log(const Expr &x_full) {
     Type type = x_full.type();
     internal_assert(type.element_of() == Float(32));
 
@@ -496,7 +496,7 @@ Expr halide_log(const Expr &x_full) {
     return result;
 }
 
-Expr halide_exp(const Expr &x_full) {
+Expr halideir_exp(const Expr &x_full) {
     Type type = x_full.type();
     internal_assert(type.element_of() == Float(32));
 
@@ -543,8 +543,8 @@ Expr halide_exp(const Expr &x_full) {
     return result;
 }
 
-Expr halide_erf(const Expr &x_full) {
-    user_assert(x_full.type() == Float(32)) << "halide_erf only works for Float(32)";
+Expr halideir_erf(const Expr &x_full) {
+    user_assert(x_full.type() == Float(32)) << "halideir_erf only works for Float(32)";
 
     // Extract the sign and magnitude.
     Expr sign = select(x_full < 0, -1.0f, 1.0f);
@@ -690,9 +690,9 @@ Expr combine_strings(const std::vector<Expr> &args) {
 Expr print(const std::vector<Expr> &args) {
     Expr combined_string = combine_strings(args);
 
-    // Call halide_print.
+    // Call halideir_print.
     Expr print_call =
-        Internal::Call::make(Int(32), "halide_print",
+        Internal::Call::make(Int(32), "halideir_print",
                              {combined_string}, Internal::Call::Extern);
 
     // Return the first argument.
@@ -717,7 +717,7 @@ Expr require(const Expr &condition, const std::vector<Expr> &args) {
 
     Expr requirement_failed_error =
         Internal::Call::make(Int(32),
-                             "halide_error_requirement_failed",
+                             "halideir_error_requirement_failed",
                              {stringify({condition}), combine_strings(args)},
                              Internal::Call::Extern);
     // Just cast to the type expected by the success path: since the actual

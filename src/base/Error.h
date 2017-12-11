@@ -102,7 +102,7 @@ struct ErrorReport {
 
 // This uses operator precedence as a trick to avoid argument evaluation if
 // an assertion is true: it is intended to be used as part of the
-// _halide_internal_assertion macro, to coerce the result of the stream
+// _halideir_internal_assertion macro, to coerce the result of the stream
 // expression to void (to match the condition-is-false case).
 class Voidifier {
  public:
@@ -113,7 +113,7 @@ class Voidifier {
 };
 
 /**
- * _halide_internal_assertion is used to implement our assertion macros
+ * _halideir_internal_assertion is used to implement our assertion macros
  * in such a way that the messages output for the assertion are only
  * evaluated if the assertion's value is false.
  *
@@ -126,7 +126,7 @@ class Voidifier {
  * effect that all assertion parameters are totally skipped (not ever evaluated)
  * when the assertion is true.
  */
-#define _halide_internal_assertion(condition, flags) \
+#define _halideir_internal_assertion(condition, flags) \
   (condition)                                        \
       ? (void)0                                      \
       : ::HalideIR::Internal::Voidifier() &            \
@@ -136,10 +136,10 @@ class Voidifier {
 #define internal_error            HalideIR::Internal::ErrorReport(__FILE__, __LINE__, nullptr, 0)
 #define user_error                HalideIR::Internal::ErrorReport(__FILE__, __LINE__, nullptr, HalideIR::Internal::ErrorReport::User)
 #define user_warning              HalideIR::Internal::ErrorReport(__FILE__, __LINE__, nullptr, HalideIR::Internal::ErrorReport::User | HalideIR::Internal::ErrorReport::Warning)
-#define halide_runtime_error      HalideIR::Internal::ErrorReport(__FILE__, __LINE__, nullptr, HalideIR::Internal::ErrorReport::User | HalideIR::Internal::ErrorReport::Runtime)
+#define halideir_runtime_error      HalideIR::Internal::ErrorReport(__FILE__, __LINE__, nullptr, HalideIR::Internal::ErrorReport::User | HalideIR::Internal::ErrorReport::Runtime)
 
-// #define internal_assert(c)        _halide_internal_assertion(c, 0)
-// #define user_assert(c)            _halide_internal_assertion(c, HalideIR::Internal::ErrorReport::User)
+// #define internal_assert(c)        _halideir_internal_assertion(c, 0)
+// #define user_assert(c)            _halideir_internal_assertion(c, HalideIR::Internal::ErrorReport::User)
 
 #define internal_assert CHECK
 #define user_assert CHECK
@@ -148,7 +148,7 @@ class Voidifier {
 // but user code might want to do halide-style user_asserts (e.g. the
 // Extern macros introduce calls to user_assert), so for that purpose
 // we define an equivalent macro that can be used outside of Halide.h
-#define _halide_user_assert(c)     _halide_internal_assertion(c, HalideIR::Internal::ErrorReport::User)
+#define _halideir_user_assert(c)     _halideir_internal_assertion(c, HalideIR::Internal::ErrorReport::User)
 
 // N.B. Any function that might throw a user_assert or user_error may
 // not be inlined into the user's code, or the line number will be

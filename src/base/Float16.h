@@ -202,8 +202,8 @@ private:
 }  // namespace HalideIR
 
 template<>
-HALIDEIR_ALWAYS_INLINE halide_type_t halide_type_of<HalideIR::float16_t>() {
-    return halide_type_t(halide_type_float, 16);
+HALIDEIR_ALWAYS_INLINE halideir_type_t halideir_type_of<HalideIR::float16_t>() {
+    return halideir_type_t(halideir_type_float, 16);
 }
 
 #endif
