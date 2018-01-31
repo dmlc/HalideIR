@@ -184,20 +184,20 @@ class IRFunctor<R(const NodeRef& n, Args...)> {
  * \brief A container for a list of callbacks. All callbacks are invoked when
  * the object is destructed.
  */
-class FreeList {
-private:
-  std::vector<std::function<void()>> free_list;
-
+class IRFunctorCleanList {
 public:
-  ~FreeList() {
-    for (auto &f : free_list) {
+  ~IRFunctorCleanList() {
+    for (auto &f : clean_items) {
       f();
     }
   }
 
   void append(std::function<void()> func) {
-    free_list.push_back(func);
+    clean_items.push_back(func);
   }
+
+private:
+  std::vector< std::function<void()> > clean_items;
 };
 
 /*!
@@ -216,14 +216,14 @@ template<typename R, typename ...Args>
 class IRFunctorStaticRegistry<R(const NodeRef& n, Args...)> {
 private:
   IRFunctor<R(const NodeRef& n, Args...)> *irf_;
-  std::shared_ptr<FreeList> free_list;
+  std::shared_ptr<IRFunctorCleanList> free_list;
 
   using TSelf = IRFunctorStaticRegistry<R(const NodeRef& n, Args...)>;
 
 public:
   IRFunctorStaticRegistry(IRFunctor<R(const NodeRef& n, Args...)> *irf) {
     irf_ = irf;
-    free_list = std::shared_ptr<FreeList>(new FreeList());
+    free_list = std::make_shared<IRFunctorCleanList>();
   }
 
   template<typename TNode>
