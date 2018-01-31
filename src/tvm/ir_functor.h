@@ -117,10 +117,7 @@ class IRFunctor<R(const NodeRef& n, Args...)> {
   template<typename TNode>
   inline TSelf& clear_dispatch() {  // NOLINT(*)
     uint32_t tindex = Node::TypeKey2Index(TNode::_type_key);
-    if (func_.size() <= tindex) {
-      func_.resize(tindex + 1, nullptr);
-      //func_.resize(tindex + 1, std::shared_ptr<Function>());
-    }
+    CHECK_LT(tindex, func_.size()) << "clear_dispatch: index out of range";
     func_[tindex] = nullptr;
     return *this;
   }
@@ -206,25 +203,25 @@ public:
 /*!
 * \brief A wrapper around IRFunctor that will record calls to set_dispatch
 * and make a corresponding call to clear_dispatch when the last copy of
-* the IRFunctorWrapper is destructed. When assigned to a static variable,
+* the IRFunctorStaticRegistry is destructed. When assigned to a static variable,
 * this can be used by NNVM and other libraries to unregister callbacks when
 * the library is unloaded. This prevents crashes when the underlying IRFunctor
 * is destructed as it will no longer contain std::function instances allocated
 * by a library that has been unloaded.
 */
 template<typename FType>
-class IRFunctorWrapper;
+class IRFunctorStaticRegistry;
 
 template<typename R, typename ...Args>
-class IRFunctorWrapper<R(const NodeRef& n, Args...)> {
+class IRFunctorStaticRegistry<R(const NodeRef& n, Args...)> {
 private:
   IRFunctor<R(const NodeRef& n, Args...)> *irf_;
   std::shared_ptr<FreeList> free_list;
 
-  using TSelf = IRFunctorWrapper<R(const NodeRef& n, Args...)>;
+  using TSelf = IRFunctorStaticRegistry<R(const NodeRef& n, Args...)>;
 
 public:
-  IRFunctorWrapper(IRFunctor<R(const NodeRef& n, Args...)> *irf) {
+  IRFunctorStaticRegistry(IRFunctor<R(const NodeRef& n, Args...)> *irf) {
     irf_ = irf;
     free_list = std::shared_ptr<FreeList>(new FreeList());
   }
@@ -241,26 +238,26 @@ public:
 };
 
 /*!
-* \brief Helper function for constructing an IRFunctorWrapper. This allows
+* \brief Helper function for constructing an IRFunctorStaticRegistry. This allows
 * the compiler to deduce the template types.
 */
 template<typename R, typename ...Args>
-IRFunctorWrapper<R(const NodeRef& n, Args...)> make_irfunctor_wrapper(
+IRFunctorStaticRegistry<R(const NodeRef& n, Args...)> MakeIRFunctorStaticRegistry(
   IRFunctor<R(const NodeRef& n, Args...)> *irf) {
-  return IRFunctorWrapper<R(const NodeRef& n, Args...)>(irf);
+  return IRFunctorStaticRegistry<R(const NodeRef& n, Args...)>(irf);
 }
 
 #define TVM_AUTO_REGISTER_VAR_DEF(ClsName)                           \
   static TVM_ATTRIBUTE_UNUSED auto __make_functor ## _ ## ClsName
 
 /*!
-* \brief Macro to set IRFunctor dispatch in a global static field using an IRFunctorWrapper.
+* \brief Macro to set IRFunctor dispatch in a global static field using an IRFunctorStaticRegistry.
 * Usage is exactly the same as TVM_STATIC_IR_FUNCTOR. Libraries should use this instead of
 * TVM_STATIC_IR_FUNCTOR.
 */
-#define TVM_AUTO_STATIC_IR_FUNCTOR(ClsName, FField)                  \
+#define TVM_STATIC_IR_FUNCTOR_REGISTER(ClsName, FField)                  \
   TVM_STR_CONCAT(TVM_AUTO_REGISTER_VAR_DEF(ClsName), __COUNTER__)  = \
-                        make_irfunctor_wrapper(&ClsName::FField())
+                        MakeIRFunctorStaticRegistry(&ClsName::FField())
 
 }  // namespace tvm
 
