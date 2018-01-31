@@ -229,9 +229,9 @@ public:
   template<typename TNode>
   inline TSelf& set_dispatch(std::function<R(const TNode* n, Args...)> f) {  // NOLINT(*)
     irf_->set_dispatch<TNode>(f);
-    auto irfCopy = irf_;
-    free_list.get()->append([irfCopy] {
-      irfCopy->clear_dispatch<TNode>();
+    auto irf_copy = irf_;
+    free_list.get()->append([irf_copy] {
+      irf_copy->clear_dispatch<TNode>();
       });
     return *this;
   }
