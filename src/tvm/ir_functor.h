@@ -231,7 +231,7 @@ public:
     irf_->set_dispatch<TNode>(f);
     auto irf_copy = irf_;
     free_list.get()->append([irf_copy] {
-      irf_copy->clear_dispatch<TNode>();
+      irf_copy->template clear_dispatch<TNode>();
       });
     return *this;
   }
