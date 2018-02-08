@@ -295,7 +295,7 @@ struct Type {
     int bytes() const {return (bits() + 7) / 8;}
 
     /** The number of bytes with vector lanes */
-    int total_bytes const {return bits() * lanes() / 8;}
+    int total_bytes const {return is_scalar() ? bytes() : bits() * lanes() / 8;}
 
     // Default ctor initializes everything to predictable-but-unlikely values
     Type() : type(Handle, 0, 0), handle_type(nullptr) {}
