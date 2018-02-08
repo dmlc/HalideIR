@@ -294,6 +294,9 @@ struct Type {
     /** The number of bytes required to store a single scalar value of this type. Ignores vector lanes. */
     int bytes() const {return (bits() + 7) / 8;}
 
+    /** The number of bytes with vector lanes */
+    int total_bytes() const {return is_scalar() ? bytes() : bits() * lanes() / 8;}
+
     // Default ctor initializes everything to predictable-but-unlikely values
     Type() : type(Handle, 0, 0), handle_type(nullptr) {}
 
