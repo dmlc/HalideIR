@@ -50,7 +50,7 @@ class EXPORT AttrVisitor {
  * \brief base class of node container in DSL AST.
  *  All object's internal is stored as std::shared_ptr<Node>
  */
-class EXPORT Node {
+class EXPORT Node : public std::enable_shared_from_this<Node> {
  public:
   /*! \brief virtual destructor */
   virtual ~Node() {}
@@ -96,6 +96,13 @@ class EXPORT Node {
    */
   template<typename T>
   inline bool is_type() const;
+  /*!
+   * \brief Get a NodeRef that holds reference to this Node.
+   *
+   * \note This is enabled by enable_shared_from_this.
+   * \return the NodeRef
+   */
+  inline NodeRef GetNodeRef() const;
   // node ref can see this
   friend class NodeRef;
   static constexpr const char* _type_key = "Node";
@@ -202,6 +209,13 @@ inline bool Node::derived_from() const {
   // use static field so query only happens once.
   static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
   return this->_DerivedFrom(type_id);
+}
+
+inline NodeRef Node::GetNodeRef() const {
+  // const_cast<Node*> because NodeRef requires std::shared_ptr<Node>,
+  // This is fine as NodeRef mostly only gives you back const Node*,
+  // of course things can be breached as it is C++
+  return NodeRef(const_cast<Node*>(this)->shared_from_this());
 }
 
 inline const Node* NodeRef::get() const {
