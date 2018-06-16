@@ -29,7 +29,7 @@ class ArrayNode : public Node {
   TVM_DECLARE_NODE_TYPE_INFO(ArrayNode, Node);
 };
 
-/*! \brief map node content in array */
+/*! \brief map node content */
 class MapNode : public Node {
  public:
   void VisitAttrs(AttrVisitor* visitor) final {
@@ -61,6 +61,25 @@ class MapNode : public Node {
 
   static constexpr const char* _type_key = "Map";
   TVM_DECLARE_NODE_TYPE_INFO(MapNode, Node);
+};
+
+
+/*! \brief specialized map node with string as key */
+class StrMapNode : public Node {
+ public:
+  void VisitAttrs(AttrVisitor* visitor) final {
+     // Visitor to map have no effect.
+  }
+  /*! \brief The corresponding conatiner type */
+  using ContainerType = std::unordered_map<
+    std::string,
+    std::shared_ptr<Node> >;
+
+  /*! \brief the data content */
+  ContainerType data;
+
+  static constexpr const char* _type_key = "StrMap";
+  TVM_DECLARE_NODE_TYPE_INFO(StrMapNode, Node);
 };
 
 /*!
@@ -285,7 +304,9 @@ class Array : public NodeRef {
  */
 template<typename K,
          typename V,
-         typename = typename std::enable_if<std::is_base_of<NodeRef, K>::value>::type,
+         typename = typename std::enable_if<
+           std::is_base_of<NodeRef, K>::value ||
+           std::is_base_of<std::string, K>::value >::type,
          typename = typename std::enable_if<std::is_base_of<NodeRef, V>::value>::type>
 class Map : public NodeRef {
  public:
@@ -453,6 +474,106 @@ class Map : public NodeRef {
   /*! \return begin iterator */
   inline iterator find(const K& key) const {
     return iterator(static_cast<const MapNode*>(node_.get())->data.find(key.node_));
+  }
+};
+
+// specialize of string map
+template<typename V, typename T1, typename T2>
+class Map<std::string, V, T1, T2> : public NodeRef {
+ public:
+  // for code reuse
+  Map() {
+    node_ = std::make_shared<StrMapNode>();
+  }
+  Map(Map<std::string, V> && other) {  // NOLINT(*)
+    node_ = std::move(other.node_);
+  }
+  Map(const Map<std::string, V> &other) { // NOLINT(*)
+    node_ = other.node_;
+  }
+  explicit Map(std::shared_ptr<Node> n) : NodeRef(n) {}
+  template<typename IterType>
+  Map(IterType begin, IterType end) {
+    assign(begin, end);
+  }
+  Map(std::initializer_list<std::pair<std::string, V> > init) { // NOLINT(*)
+    assign(init.begin(), init.end());
+  }
+
+  template<typename Hash, typename Equal>
+  Map(const std::unordered_map<std::string, V, Hash, Equal>& init) { // NOLINT(*)
+    assign(init.begin(), init.end());
+  }
+  Map<std::string, V>& operator=(Map<std::string, V> && other) {
+    node_ = std::move(other.node_);
+    return *this;
+  }
+  Map<std::string, V>& operator=(const Map<std::string, V> & other) {
+    node_ = other.node_;
+    return *this;
+  }
+  template<typename IterType>
+  void assign(IterType begin, IterType end) {
+    auto n = std::make_shared<StrMapNode>();
+    for (IterType i = begin; i != end; ++i) {
+      n->data.emplace(std::make_pair(i->first,
+                                     i->second.node_));
+    }
+    node_ = std::move(n);
+  }
+  inline const V operator[](const std::string& key) const {
+    return V(static_cast<const StrMapNode*>(node_.get())->data.at(key));
+  }
+  inline const V at(const std::string& key) const {
+    return V(static_cast<const StrMapNode*>(node_.get())->data.at(key));
+  }
+  inline size_t size() const {
+    if (node_.get() == nullptr) return 0;
+    return static_cast<const StrMapNode*>(node_.get())->data.size();
+  }
+  inline size_t count(const std::string& key) const {
+    if (node_.get() == nullptr) return 0;
+    return static_cast<const StrMapNode*>(node_.get())->data.count(key);
+  }
+  inline StrMapNode* CopyOnWrite() {
+    if (node_.get() == nullptr || !node_.unique())  {
+      node_ = std::make_shared<StrMapNode>(
+          *static_cast<const StrMapNode*>(node_.get()));
+    }
+    return static_cast<StrMapNode*>(node_.get());
+  }
+  inline void Set(const std::string& key, const V& value) {
+    StrMapNode* n = this->CopyOnWrite();
+    n->data[key] = value.node_;
+  }
+  inline bool empty() const {
+    return size() == 0;
+  }
+  using ContainerType = StrMapNode;
+
+  struct Ptr2NodeRef {
+    using ResultType = std::pair<std::string, V>;
+    static inline ResultType convert(const std::pair<
+                            std::string,
+                            std::shared_ptr<Node> >& n) {
+      return std::make_pair(n.first, V(n.second));
+    }
+  };
+
+  using iterator = IterAdapter<
+    Ptr2NodeRef, StrMapNode::ContainerType::const_iterator>;
+
+  /*! \return begin iterator */
+  inline iterator begin() const {
+    return iterator(static_cast<const StrMapNode*>(node_.get())->data.begin());
+  }
+  /*! \return end iterator */
+  inline iterator end() const {
+    return iterator(static_cast<const StrMapNode*>(node_.get())->data.end());
+  }
+  /*! \return begin iterator */
+  inline iterator find(const std::string& key) const {
+    return iterator(static_cast<const StrMapNode*>(node_.get())->data.find(key));
   }
 };
 
