@@ -3980,7 +3980,8 @@ private:
             if (propagate_indeterminate_expression(a, b, op->type, &expr)) {
                 return;
             }
-
+            // avoid shift simplify to division as they are inaccurate.
+            /*
             int64_t ib = 0;
             if (const_int(b, &ib) || const_uint(b, (uint64_t *)(&ib))) {
                 Type t = op->type;
@@ -4005,8 +4006,7 @@ private:
                     user_warning << "Cannot replace bit shift with arithmetic "
                                  << "operator (integer overflow).\n";
                 }
-            }
-
+            }*/
             if (a.same_as(op->args[0]) && b.same_as(op->args[1])) {
                 expr = self;
             } else if (op->is_intrinsic(Call::shift_left)) {
@@ -6185,9 +6185,9 @@ void simplify_test() {
     check_overflow();
 
     // Check bitshift operations
-    check(cast(Int(16), x) << 10, cast(Int(16), x) * 1024);
-    check(cast(Int(16), x) >> 10, cast(Int(16), x) / 1024);
-    check(cast(Int(16), x) << -10, cast(Int(16), x) / 1024);
+    //check(cast(Int(16), x) << 10, cast(Int(16), x) * 1024);
+    //check(cast(Int(16), x) >> 10, cast(Int(16), x) / 1024);
+    //check(cast(Int(16), x) << -10, cast(Int(16), x) / 1024);
     // Correctly triggers a warning:
     //check(cast(Int(16), x) << 20, cast(Int(16), x) << 20);
 
