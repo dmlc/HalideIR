@@ -20,6 +20,10 @@ using HalideIR::Type;
 class Node;
 class NodeRef;
 
+namespace runtime {
+// forward declaration
+class NDArray;
+}  // namespace runtime
 /*!
  * \brief Visitor class to each node content.
  *  The content is going to be called for each field.
@@ -36,6 +40,7 @@ class EXPORT AttrVisitor {
   virtual void Visit(const char* key, void** value) = 0;
   virtual void Visit(const char* key, Type* value) = 0;
   virtual void Visit(const char* key, NodeRef* value) = 0;
+  virtual void Visit(const char* key, runtime::NDArray* value) = 0;
   template<typename ENum,
            typename = typename std::enable_if<std::is_enum<ENum>::value>::type>
   void Visit(const char* key, ENum* ptr) {
