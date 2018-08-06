@@ -218,6 +218,18 @@ class Array : public NodeRef {
   inline const T operator[](size_t i) const {
     return T(static_cast<const ArrayNode*>(node_.get())->data[i]);
   }
+  /*!
+   * \brief Read i-th element from array, throwing an exception if out of bounds.
+   * \param i The index
+   * \return the i-th element
+   */
+  inline const T at(size_t i) const {
+    try {
+      return T(static_cast<const ArrayNode*>(node_.get())->data.at(i));
+    } catch (const std::out_of_range & err) {
+      throw dmlc::Error(err.what());
+    }
+  }
   /*! \return The size of the array */
   inline size_t size() const {
     if (node_.get() == nullptr) return 0;
