@@ -83,9 +83,14 @@ IRPrinter::IRPrinter(ostream &s) : stream(s), indent(0) {
 void IRPrinter::print(const NodeRef& ir) {
     static const FType& f = vtable();
     if (!ir.defined()) {
-        stream << "(undefined)";
+        stream << "(nullptr)";
     } else {
-        f(ir, this);
+        if (f.can_dispatch(ir)) {
+            f(ir, this);
+        } else {
+            // default value, output type key and addr.
+            stream << ir->type_key() << "(" << ir.get() << ")";
+        }
     }
 }
 
