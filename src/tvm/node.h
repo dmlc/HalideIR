@@ -161,10 +161,21 @@ class NodeRef {
    * if (const Add *add = node->as<Add>()) {
    *   // This is an add node
    * }
+   *
+   * \note This function only works if T is the final type,
+   *       use as_derived when T can also be base types.
    * \tparam T the target type, must be subtype of IRNode
    */
   template<typename T>
   inline const T *as() const;
+
+  /*!
+   * \brief A more powerful version of as that also works with
+   *  intermediate base types.
+   * \tparam T the target type, must be subtype of IRNode
+   */
+  template<typename T>
+  inline const T *as_derived() const;
 
   /*! \brief default constructor */
   NodeRef() = default;
@@ -263,6 +274,15 @@ inline uint32_t NodeRef::type_index() const {
 
 template<typename T>
 inline const T* NodeRef::as() const {
+  const Node* ptr = static_cast<const Node*>(get());
+  if (ptr && ptr->is_type<T>()) {
+    return static_cast<const T*>(ptr);
+  }
+  return nullptr;
+}
+
+template<typename T>
+inline const T* NodeRef::as_derived() const {
   const Node* ptr = static_cast<const Node*>(get());
   if (ptr && (ptr->is_type<T>() || ptr->derived_from<T>())) {
     return static_cast<const T*>(ptr);
