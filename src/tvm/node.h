@@ -264,7 +264,7 @@ inline uint32_t NodeRef::type_index() const {
 template<typename T>
 inline const T* NodeRef::as() const {
   const Node* ptr = static_cast<const Node*>(get());
-  if (ptr && ptr->is_type<T>()) {
+  if (ptr && (ptr->is_type<T>() || ptr->derived_from<T>())) {
     return static_cast<const T*>(ptr);
   }
   return nullptr;
