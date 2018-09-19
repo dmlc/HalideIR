@@ -23,7 +23,7 @@ class FunctionRef : public NodeRef {
  public:
   /*! \brief constructor */
   FunctionRef() {}
-  FunctionRef(std::shared_ptr<Node> n) : NodeRef(n) {}
+  FunctionRef(NodePtr<Node> n) : NodeRef(n) {}
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container

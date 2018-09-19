@@ -109,7 +109,7 @@ struct BinaryOpNode : public ExprNode<T> {
        internal_assert(a.defined()) << "BinaryOp of undefined\n";
        internal_assert(b.defined()) << "BinaryOp of undefined\n";
        internal_assert(a.type() == b.type()) << "BinaryOp of mismatched types\n";
-       std::shared_ptr<T> node = std::make_shared<T>();
+       NodePtr<T> node = make_node<T>();
        node->type = a.type();
        node->a = std::move(a);
        node->b = std::move(b);
@@ -175,7 +175,7 @@ struct CmpOpNode : public ExprNode<T> {
         internal_assert(a.defined()) << "CmpOp of undefined\n";
         internal_assert(b.defined()) << "CmpOp of undefined\n";
         internal_assert(a.type() == b.type()) << "BinaryOp of mismatched types\n";
-        std::shared_ptr<T> node = std::make_shared<T>();
+        NodePtr<T> node = make_node<T>();
         node->type = Bool(a.type().lanes());
         node->a = std::move(a);
         node->b = std::move(b);

@@ -4,6 +4,10 @@
 /** \file
  * Base classes for Halide expressions (\ref HalideIR::Expr) and statements (\ref HalideIR::Internal::Stmt)
  */
+#include <tvm/node/node.h>
+#include <tvm/node/memory.h>
+#include <tvm/node/ir_functor.h>
+#include <tvm/node/container.h>
 
 #include <string>
 #include <vector>
@@ -13,16 +17,20 @@
 #include "base/Float16.h"
 #include "base/Type.h"
 #include "base/Util.h"
-#include "tvm/node.h"
-#include "tvm/ir_functor.h"
-#include "tvm/container.h"
+
 
 namespace HalideIR {
-namespace Internal {
+using tvm::Node;
+using tvm::NodeRef;
+using tvm::Array;
+using tvm::NodePtr;
+using tvm::make_node;
 
-using IR::Node;
-using IR::NodeRef;
-using IR::Array;
+namespace IR {
+using tvm::AttrVisitor;
+}  // namespace IR
+
+namespace Internal {
 
 struct Variable;
 class IRVisitor;
@@ -148,7 +156,7 @@ struct StmtNode : public BaseStmtNode {
    and dispatches visitors. */
 struct IRHandle : public NodeRef {
     IRHandle() {}
-    IRHandle(std::shared_ptr<Node> p) : NodeRef(p) {}
+    IRHandle(NodePtr<Node> p) : NodeRef(p) {}
 
     /** return internal content as IRNode */
     inline const IRNode* get() const {
@@ -169,7 +177,7 @@ struct Expr : public Internal::IRHandle {
     Expr() : Internal::IRHandle() {}
 
     /** Make an expression from a concrete expression node pointer (e.g. Add) */
-    explicit Expr(std::shared_ptr<IR::Node> n) : IRHandle(n) {}
+    explicit Expr(NodePtr<Node> n) : IRHandle(n) {}
 
     /** Make an expression representing numeric constants of various types. */
     // @{
@@ -236,7 +244,7 @@ struct ExprEqual {
  */
 struct VarExpr : public Expr {
     VarExpr() : Expr() { }
-    explicit VarExpr(std::shared_ptr<IR::Node> n) : Expr(n) {}
+    explicit VarExpr(NodePtr<Node> n) : Expr(n) {}
     /**
      * constructor from variable
      * Choose first have name then type, with default int32
@@ -278,7 +286,7 @@ enum class ForType : int {
 /** A reference-counted handle to a statement node. */
 struct Stmt : public IRHandle {
     Stmt() : IRHandle() {}
-    Stmt(std::shared_ptr<IR::Node> n) : IRHandle(n) {}
+    Stmt(NodePtr<Node> n) : IRHandle(n) {}
 
     /** Dispatch to the correct visitor method for this node. E.g. if
      * this node is actually an Add node, then this will call
