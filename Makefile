@@ -13,7 +13,7 @@ endif
 CCSUFFIX=cpp
 
 all: lib/libHalideIR.a lib/libHalideIR.so
-SRC = $(wildcard src/*.$(CCSUFFIX) src/*/*.$(CCSUFFIX))
+SRC = $(wildcard src/*.$(CCSUFFIX) src/*/*.$(CCSUFFIX) src/*/*/*.$(CCSUFFIX))
 ALL_OBJ = $(patsubst src/%.$(CCSUFFIX), build/%.o, $(SRC))
 ALL_DEP = $(ALL_OBJ)
 
