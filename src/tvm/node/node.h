@@ -10,7 +10,7 @@
 #include <vector>
 #include <type_traits>
 #include "base/Type.h"
-#include "tvm/runtime/node_base.h"
+#include "node_base.h"
 
 namespace tvm {
 using HalideIR::Type;
