@@ -36,7 +36,7 @@ using Region = Array<Range>;
 struct IntImm : public ExprNode<IntImm> {
     int64_t value;
 
-    static Expr make(Type t, int64_t value);
+    EXPORT static Expr make(Type t, int64_t value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
@@ -50,7 +50,7 @@ struct IntImm : public ExprNode<IntImm> {
 struct UIntImm : public ExprNode<UIntImm> {
     uint64_t value;
 
-    static Expr make(Type t, uint64_t value);
+    EXPORT static Expr make(Type t, uint64_t value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
@@ -64,7 +64,7 @@ struct UIntImm : public ExprNode<UIntImm> {
 struct FloatImm : public ExprNode<FloatImm> {
     double value;
 
-    static Expr make(Type t, double value);
+    EXPORT static Expr make(Type t, double value);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
@@ -78,7 +78,7 @@ struct FloatImm : public ExprNode<FloatImm> {
 struct StringImm : public ExprNode<StringImm> {
     std::string value;
 
-    Expr static make(const std::string &val);
+    EXPORT Expr static make(const std::string &val);
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
         v->Visit("value", &value);
