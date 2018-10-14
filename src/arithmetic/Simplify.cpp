@@ -839,7 +839,9 @@ private:
                    add_a_a &&
                    const_int(add_a_a->b, &ia) &&
                    const_int(div_a->b, &ib) && ib &&
-                   const_int(b, &ic)) {
+                   const_int(b, &ic) &&
+                   // disable when ic < 0 since hardware may round up for div
+                   ic >= 0) {
             // ((a + ia) / ib + ic) -> (a + (ia + ib*ic)) / ib
             expr = mutate((add_a_a->a + IntImm::make(op->type, ia + ib*ic)) / div_a->b);
         } else if (mul_a &&
