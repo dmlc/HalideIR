@@ -148,8 +148,7 @@ class Array : public NodeRef {
    * \brief copy constructor
    * \param other source
    */
-  Array(const Array<T> &other) { // NOLINT(*)
-    node_ = other.node_;
+  Array(const Array<T> &other) : NodeRef(other.node_) { // NOLINT(*)
   }
   /*!
    * \brief constructor from pointer
@@ -330,8 +329,7 @@ class Map : public NodeRef {
    * \brief copy constructor
    * \param other source
    */
-  Map(const Map<K, V> &other) { // NOLINT(*)
-    node_ = other.node_;
+  Map(const Map<K, V> &other) : NodeRef(other.node_) { // NOLINT(*)
   }
   /*!
    * \brief constructor from pointer
@@ -492,8 +490,7 @@ class Map<std::string, V, T1, T2> : public NodeRef {
   Map(Map<std::string, V> && other) {  // NOLINT(*)
     node_ = std::move(other.node_);
   }
-  Map(const Map<std::string, V> &other) { // NOLINT(*)
-    node_ = other.node_;
+  Map(const Map<std::string, V> &other) : NodeRef(other.node_) { // NOLINT(*)
   }
   explicit Map(NodePtr<Node> n) : NodeRef(n) {}
   template<typename IterType>
