@@ -30,6 +30,7 @@ class NDArray;
 class EXPORT AttrVisitor {
  public:
 //! \cond Doxygen_Suppress
+  virtual ~AttrVisitor() = default;
   virtual void Visit(const char* key, double* value) = 0;
   virtual void Visit(const char* key, int64_t* value) = 0;
   virtual void Visit(const char* key, uint64_t* value) = 0;
