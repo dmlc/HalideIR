@@ -180,6 +180,18 @@ class Array : public NodeRef {
     assign(init.begin(), init.end());
   }
   /*!
+   * \brief Constructs a container with n elements. Each element is a copy of val
+   * \param n The size of the container
+   * \param val The init value
+   */
+  explicit Array(size_t n, const T& val) {
+    auto tmp_node = make_node<ArrayNode>();
+    for (size_t i = 0; i < n; ++i) {
+      tmp_node->data.push_back(val.node_);
+    }
+    node_ = std::move(tmp_node);
+  }
+  /*!
    * \brief move assign operator
    * \param other The source of assignment
    * \return reference to self.
