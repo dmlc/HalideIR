@@ -20,7 +20,7 @@ So we isolated and refactor the coresponding module into this repo.
 The major goal is minimum and interpolatable with more front-end languages.
 HalideIR is used in TVM project. Here are the few major improvements.
 
-- An isolated depenency free symbolic IR and simplification (no LLVM dependency).
+- An isolated dependency free symbolic IR and simplification (no LLVM dependency).
 - The project modularized into logical components.
 - All IR structure are serializable and publically accessible from front-end language(e.g. python)
   - This supports ease of development and proptyping in python
