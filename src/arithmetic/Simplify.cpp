@@ -1538,6 +1538,8 @@ private:
         const Add *add_a = a.as<Add>();
         const Sub *sub_a = a.as<Sub>();
         const Div *div_a = a.as<Div>();
+        const Max *max_a = a.as<Max>();
+        const Min *min_a = a.as<Min>();
         const Div *div_a_a = nullptr;
         const Mul *mul_a_a = nullptr;
         const Mul *mul_a_b = nullptr;
@@ -1568,6 +1570,10 @@ private:
             add_a_b = sub_a->b.as<Add>();
             sub_a_a = sub_a->a.as<Sub>();
             sub_a_b = sub_a->b.as<Sub>();
+        } else if (max_a) {
+            mul_a_a = max_a->a.as<Mul>();
+        } else if (min_a) {
+            mul_a_a = min_a->a.as<Mul>();
         }
 
         if (add_a_a) {
@@ -1685,47 +1691,49 @@ private:
                 expr = mutate(mul_a->a / make_const(op->type, div_imp(ib, ia)));
             }
         } else if (no_overflow(op->type) &&
-                   add_a &&
+                   (add_a || sub_a || max_a || min_a) &&
                    mul_a_a &&
                    const_int(mul_a_a->b, &ia) &&
                    const_int(b, &ib) &&
                    ib > 0 &&
                    (ia % ib == 0)) {
-            // Pull terms that are a multiple of the divisor out
-            // (x*4 + y) / 2 -> x*2 + y/2
+            // Pull out terms that are a multiple of the divisor
             Expr ratio = make_const(op->type, div_imp(ia, ib));
-            expr = mutate((mul_a_a->a * ratio) + (add_a->b / b));
+            if (add_a) {
+              // (x*4 + y) / 2 -> x*2 + y/2
+              expr = mutate((mul_a_a->a * ratio) + (add_a->b / b));
+            } else if (sub_a) {
+              // (x*4 - y) / 2 -> x*2 + (-y)/2
+              expr = mutate((mul_a_a->a * ratio) + (-sub_a->b) / b);
+            } else if (max_a) {
+              // max(x*4, y) / 2 -> max(x*2, y/2)
+              expr = mutate(max(mul_a_a->a * ratio, max_a->b / b));
+            } else if (min_a) {
+              // min(x*4, y) / 2 -> min(x*2, y/2)
+              expr = mutate(min(mul_a_a->a * ratio, min_a->b / b));
+            }
         } else if (no_overflow(op->type) &&
-                   add_a &&
+                   (add_a || sub_a || max_a || min_a) &&
                    mul_a_b &&
                    const_int(mul_a_b->b, &ia) &&
                    const_int(b, &ib) &&
                    ib > 0 &&
                    (ia % ib == 0)) {
-            // (y + x*4) / 2 -> y/2 + x*2
+            // Pull out terms that are a multiple of the divisor
             Expr ratio = make_const(op->type, div_imp(ia, ib));
-            expr = mutate((add_a->a / b) + (mul_a_b->a * ratio));
-        } else if (no_overflow(op->type) &&
-                   sub_a &&
-                   mul_a_a &&
-                   const_int(mul_a_a->b, &ia) &&
-                   const_int(b, &ib) &&
-                   ib > 0 &&
-                   (ia % ib == 0)) {
-            // Pull terms that are a multiple of the divisor out
-            // (x*4 - y) / 2 -> x*2 + (-y)/2
-            Expr ratio = make_const(op->type, div_imp(ia, ib));
-            expr = mutate((mul_a_a->a * ratio) + (-sub_a->b) / b);
-        } else if (no_overflow(op->type) &&
-                   sub_a &&
-                   mul_a_b &&
-                   const_int(mul_a_b->b, &ia) &&
-                   const_int(b, &ib) &&
-                   ib > 0 &&
-                   (ia % ib == 0)) {
-            // (y - x*4) / 2 -> y/2 - x*2
-            Expr ratio = make_const(op->type, div_imp(ia, ib));
-            expr = mutate((sub_a->a / b) - (mul_a_b->a * ratio));
+            if (add_a) {
+                // (y + x*4) / 2 -> y/2 + x*2
+                expr = mutate((add_a->a / b) + (mul_a_b->a * ratio));
+            } else if (sub_a) {
+                // (y - x*4) / 2 -> y/2 - x*2
+                expr = mutate((sub_a->a / b) - (mul_a_b->a * ratio));
+            } else if (max_a) {
+                // max(y, x*4) / 2 -> max(y/2, x*2)
+                expr = mutate(max(sub_a->a / b, mul_a_b->a * ratio));
+            } else if (min_a) {
+                // min(y, x*4) / 2 -> min(y/2, x*2)
+                expr = mutate(min(sub_a->a / b, mul_a_b->a * ratio));
+            }
         } else if (no_overflow(op->type) &&
                    add_a &&
                    add_a_a &&
