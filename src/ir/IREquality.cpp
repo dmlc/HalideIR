@@ -34,6 +34,7 @@ public:
      * Currently this is only done in common-subexpression
      * elimination. */
     IRComparer(IRCompareCache *c = nullptr) : result(Equal), cache(c) {}
+    ~IRComparer() {}
 
 private:
     Expr expr_;
