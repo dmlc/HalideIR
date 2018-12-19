@@ -26,6 +26,7 @@ class Substitute : public IRMutator {
 
 public:
     Substitute(const map<const Variable*, Expr> &m) : replace(m) {}
+    ~Substitute() {}
 
     using IRMutator::visit;
 
@@ -150,6 +151,7 @@ class GraphSubstitute : public IRGraphMutator {
 public:
 
     GraphSubstitute(const Variable* var, Expr value) : var(var), value(value) {}
+    ~GraphSubstitute() {}
 };
 
 /** Substitute an Expr for another Expr in a graph. Unlike substitute,
@@ -166,6 +168,7 @@ public:
     }
 
     GraphSubstituteExpr(Expr find, Expr replace) : find(find), replace(replace) {}
+    ~GraphSubstituteExpr() {}
 };
 
 Expr graph_substitute(const Variable* var, Expr replacement, Expr expr) {
