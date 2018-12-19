@@ -21,6 +21,7 @@ class Range : public NodeRef {
   /*! \brief constructor */
   Range() {}
   Range(NodePtr<Node> n) : NodeRef(n) {}
+  ~Range() {}
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container
@@ -50,6 +51,7 @@ class RangeNode : public Node {
   /*! \brief constructor */
   RangeNode() {}
   RangeNode(Expr min, Expr extent) : min(min), extent(extent) {}
+  ~RangeNode() {}
 
   void VisitAttrs(IR::AttrVisitor* v) final {
     v->Visit("min", &min);
