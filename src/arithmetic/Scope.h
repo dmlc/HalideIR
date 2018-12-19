@@ -30,6 +30,7 @@ private:
 
 public:
     SmallStack() : _empty(true) {}
+    ~SmallStack() {}
 
     void pop() {
         if (_rest.empty()) {
@@ -86,6 +87,7 @@ private:
 
 public:
     Scope() : containing_scope(nullptr) {}
+    ~Scope() {}
 
     /** Set the parent scope. If lookups fail in this scope, they
      * check the containing scope before returning an error. Caller is
@@ -165,6 +167,7 @@ public:
         }
 
         const_iterator() {}
+        ~const_iterator() {}
 
         bool operator!=(const const_iterator &other) {
             return iter != other.iter;
@@ -203,6 +206,7 @@ public:
         }
 
         iterator() {}
+        ~iterator() {}
 
         bool operator!=(const iterator &other) {
             return iter != other.iter;
