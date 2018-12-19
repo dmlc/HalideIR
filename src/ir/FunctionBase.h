@@ -24,6 +24,7 @@ class FunctionRef : public NodeRef {
   /*! \brief constructor */
   FunctionRef() {}
   FunctionRef(NodePtr<Node> n) : NodeRef(n) {}
+  ~FunctionRef() {}
   /*!
    * \brief access the internal node container
    * \return the pointer to the internal node container
