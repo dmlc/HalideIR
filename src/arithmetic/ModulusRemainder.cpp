@@ -18,6 +18,7 @@ public:
     ComputeModulusRemainder(const Scope<ModulusRemainder> *s) {
         scope.set_containing_scope(s);
     }
+    ~ComputeModulusRemainder() {}
 
     void visit(const IntImm *, const Expr &);
     void visit(const UIntImm *, const Expr &);
