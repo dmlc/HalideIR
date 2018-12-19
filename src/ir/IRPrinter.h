@@ -56,6 +56,7 @@ public:
     /** Construct an IRPrinter pointed at a given output stream
      * (e.g. std::cout, or a std::ofstream) */
     EXPORT IRPrinter(std::ostream &);
+    EXPORT ~IRPrinter();
 
     /** emit an expression on the output stream */
     EXPORT void print(const NodeRef&);
