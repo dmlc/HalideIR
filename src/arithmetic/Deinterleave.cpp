@@ -20,6 +20,7 @@ public:
     int lane_stride;
 
     Deinterleaver() {}
+    ~Deinterleaver() {}
 
 private:
     Scope<Expr> internal;
