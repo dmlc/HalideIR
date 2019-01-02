@@ -797,6 +797,11 @@ struct Variable : public ExprNode<Variable> {
      */
     std::string name_hint;
 
+    /*
+     * Hint for upper bound. -1 for conventional variable
+     */
+    int64_t upper_bound;
+
     // BufferPtr and Parameter are removed from IR
     // They can be added back via passing in binding of Variable to specific values.
     // in the final stage of code generation.
@@ -806,10 +811,12 @@ struct Variable : public ExprNode<Variable> {
     // instead,uses Reduction as a ExprNode
 
     EXPORT static VarExpr make(Type type, std::string name_hint);
+    EXPORT static VarExpr make_bounded(Type type, std::string name_hint, int upper_bound);
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("dtype", &type);
         v->Visit("name", &name_hint);
+        v->Visit("upper_bound", &upper_bound);
     }
     static const IRNodeType _type_info = IRNodeType::Variable;
     static constexpr const char* _type_key = "Variable";

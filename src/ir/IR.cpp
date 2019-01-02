@@ -481,6 +481,15 @@ VarExpr Variable::make(Type type, std::string name_hint) {
     NodePtr<Variable> node = make_node<Variable>();
     node->type = type;
     node->name_hint = std::move(name_hint);
+    node->upper_bound = -1;
+    return VarExpr(node);
+}
+
+VarExpr Variable::make_bounded(Type type, std::string name_hint, int upper_bound) {
+    NodePtr<Variable> node = make_node<Variable>();
+    node->type = type;
+    node->name_hint = std::move(name_hint);
+    node->upper_bound = upper_bound;
     return VarExpr(node);
 }
 
