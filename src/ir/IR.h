@@ -800,7 +800,7 @@ struct Variable : public ExprNode<Variable> {
     /*
      * Hint for upper bound. -1 for conventional variable
      */
-    int64_t upper_bound;
+    int32_t upper_bound;
 
     // BufferPtr and Parameter are removed from IR
     // They can be added back via passing in binding of Variable to specific values.
