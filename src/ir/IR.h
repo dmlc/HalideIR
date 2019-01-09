@@ -753,7 +753,8 @@ struct Call : public ExprNode<Call> {
      * sqrt. If in doubt, don't mark a Call node as pure. */
     bool is_pure() const {
         return (call_type == PureExtern ||
-                call_type == PureIntrinsic);
+                call_type == PureIntrinsic ||
+                call_type == Halide);
     }
 
     bool is_intrinsic(ConstString intrin_name) const {
