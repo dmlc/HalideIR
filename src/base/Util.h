@@ -27,7 +27,7 @@
 #define EXPORT __declspec(dllimport)
 #endif
 #else
-#define EXPORT
+#define EXPORT __attribute__((visibility("default")))
 #endif
 
 // If we're in user code, we don't want certain functions to be inlined.
