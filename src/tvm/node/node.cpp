@@ -28,13 +28,13 @@ struct TypeManager {
 };
 }  // namespace
 
-const bool Node::_DerivedFrom(uint32_t tid) const {
+EXPORT const bool Node::_DerivedFrom(uint32_t tid) const {
   static uint32_t tindex = TypeKey2Index(Node::_type_key);
   return tid == tindex;
 }
 
 // this is slow, usually caller always hold the result in a static variable.
-uint32_t Node::TypeKey2Index(const char* key) {
+EXPORT uint32_t Node::TypeKey2Index(const char* key) {
   TypeManager *t = TypeManager::Global();
   std::lock_guard<std::mutex>(t->mutex);
   std::string skey = key;
@@ -48,7 +48,7 @@ uint32_t Node::TypeKey2Index(const char* key) {
   return tid;
 }
 
-const char* Node::TypeIndex2Key(uint32_t index) {
+EXPORT const char* Node::TypeIndex2Key(uint32_t index) {
   TypeManager *t = TypeManager::Global();
   std::lock_guard<std::mutex>(t->mutex);
   internal_assert(index != 0);
