@@ -4,25 +4,25 @@
 
 namespace HalideIR {
 
-Expr::Expr(int8_t x) : Expr(Internal::IntImm::make(Int(8), x)) {}
-Expr::Expr(int16_t x) : Expr(Internal::IntImm::make(Int(16), x)) {}
-Expr::Expr(int32_t x) : Expr(Internal::IntImm::make(Int(32), x)) {}
-Expr::Expr(int64_t x) : Expr(Internal::IntImm::make(Int(64), x)) {}
-Expr::Expr(uint8_t x) : Expr(Internal::UIntImm::make(UInt(8), x)) {}
-Expr::Expr(uint16_t x) : IRHandle(Internal::UIntImm::make(UInt(16), x)) {}
-Expr::Expr(uint32_t x) : IRHandle(Internal::UIntImm::make(UInt(32), x)) {}
-Expr::Expr(uint64_t x) : IRHandle(Internal::UIntImm::make(UInt(64), x)) {}
-Expr::Expr(float16_t x) : IRHandle(Internal::FloatImm::make(Float(16), (double)x)) {}
-Expr::Expr(float x) : IRHandle(Internal::FloatImm::make(Float(32), x)) {}
-Expr::Expr(double x) : IRHandle(Internal::FloatImm::make(Float(64), x)) {}
-Expr::Expr(const std::string &s) : IRHandle(Internal::StringImm::make(s)) {}
+EXPORT Expr::Expr(int8_t x) : Expr(Internal::IntImm::make(Int(8), x)) {}
+EXPORT Expr::Expr(int16_t x) : Expr(Internal::IntImm::make(Int(16), x)) {}
+EXPORT Expr::Expr(int32_t x) : Expr(Internal::IntImm::make(Int(32), x)) {}
+EXPORT Expr::Expr(int64_t x) : Expr(Internal::IntImm::make(Int(64), x)) {}
+EXPORT Expr::Expr(uint8_t x) : Expr(Internal::UIntImm::make(UInt(8), x)) {}
+EXPORT Expr::Expr(uint16_t x) : IRHandle(Internal::UIntImm::make(UInt(16), x)) {}
+EXPORT Expr::Expr(uint32_t x) : IRHandle(Internal::UIntImm::make(UInt(32), x)) {}
+EXPORT Expr::Expr(uint64_t x) : IRHandle(Internal::UIntImm::make(UInt(64), x)) {}
+EXPORT Expr::Expr(float16_t x) : IRHandle(Internal::FloatImm::make(Float(16), (double)x)) {}
+EXPORT Expr::Expr(float x) : IRHandle(Internal::FloatImm::make(Float(32), x)) {}
+EXPORT Expr::Expr(double x) : IRHandle(Internal::FloatImm::make(Float(64), x)) {}
+EXPORT Expr::Expr(const std::string &s) : IRHandle(Internal::StringImm::make(s)) {}
 
-VarExpr::VarExpr(const std::string &name_hint,  Type t)
+EXPORT VarExpr::VarExpr(const std::string &name_hint,  Type t)
     : VarExpr(Internal::Variable::make(t, name_hint)) {}
 
 namespace Internal {
 
-Expr IntImm::make(Type t, int64_t value) {
+EXPORT Expr IntImm::make(Type t, int64_t value) {
     internal_assert(t.is_int() && t.is_scalar())
         << "IntImm must be a scalar Int\n";
     internal_assert(t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
@@ -39,7 +39,7 @@ Expr IntImm::make(Type t, int64_t value) {
     return Expr(node);
 }
 
-Expr UIntImm::make(Type t, uint64_t value) {
+EXPORT Expr UIntImm::make(Type t, uint64_t value) {
     internal_assert(t.is_uint() && t.is_scalar())
         << "UIntImm must be a scalar UInt\n";
     internal_assert(t.bits() == 1 || t.bits() == 8 || t.bits() == 16 || t.bits() == 32 || t.bits() == 64)
@@ -55,7 +55,7 @@ Expr UIntImm::make(Type t, uint64_t value) {
     return Expr(node);
 }
 
-Expr FloatImm::make(Type t, double value) {
+EXPORT Expr FloatImm::make(Type t, double value) {
   internal_assert(t.is_float() && t.is_scalar())
       << "FloatImm must be a scalar Float\n";
   NodePtr<FloatImm> node = make_node<FloatImm>();
@@ -77,7 +77,7 @@ Expr FloatImm::make(Type t, double value) {
   return Expr(node);
 }
 
-Expr StringImm::make(const std::string &val) {
+EXPORT Expr StringImm::make(const std::string &val) {
     NodePtr<StringImm> node = make_node<StringImm>();
     node->type = type_of<const char *>();
     node->value = val;
@@ -85,7 +85,7 @@ Expr StringImm::make(const std::string &val) {
 }
 
 
-Expr Cast::make(Type t, Expr v) {
+EXPORT Expr Cast::make(Type t, Expr v) {
     internal_assert(v.defined()) << "Cast of undefined\n";
     internal_assert(t.lanes() == v.type().lanes()) << "Cast may not change vector widths\n";
 
@@ -96,7 +96,7 @@ Expr Cast::make(Type t, Expr v) {
 }
 
 
-Expr And::make(Expr a, Expr b) {
+EXPORT Expr And::make(Expr a, Expr b) {
     internal_assert(a.defined()) << "And of undefined\n";
     internal_assert(b.defined()) << "And of undefined\n";
     internal_assert(a.type().is_bool()) << "lhs of And is not a bool\n";
@@ -110,7 +110,7 @@ Expr And::make(Expr a, Expr b) {
     return Expr(node);
 }
 
-Expr Or::make(Expr a, Expr b) {
+EXPORT Expr Or::make(Expr a, Expr b) {
     internal_assert(a.defined()) << "Or of undefined\n";
     internal_assert(b.defined()) << "Or of undefined\n";
     internal_assert(a.type().is_bool()) << "lhs of Or is not a bool\n";
@@ -124,7 +124,7 @@ Expr Or::make(Expr a, Expr b) {
     return Expr(node);
 }
 
-Expr Not::make(Expr a) {
+EXPORT Expr Not::make(Expr a) {
     internal_assert(a.defined()) << "Not of undefined\n";
     internal_assert(a.type().is_bool()) << "argument of Not is not a bool\n";
     NodePtr<Not> node = make_node<Not>();
@@ -133,7 +133,7 @@ Expr Not::make(Expr a) {
     return Expr(node);
 }
 
-Expr Select::make(Expr condition, Expr true_value, Expr false_value) {
+EXPORT Expr Select::make(Expr condition, Expr true_value, Expr false_value) {
     internal_assert(condition.defined()) << "Select of undefined\n";
     internal_assert(true_value.defined()) << "Select of undefined\n";
     internal_assert(false_value.defined()) << "Select of undefined\n";
@@ -152,7 +152,7 @@ Expr Select::make(Expr condition, Expr true_value, Expr false_value) {
 }
 
 
-Expr Load::make(Type type, VarExpr buffer_var, Expr index, Expr predicate) {
+EXPORT Expr Load::make(Type type, VarExpr buffer_var, Expr index, Expr predicate) {
     internal_assert(predicate.defined()) << "Load with undefined predicate\n";
     internal_assert(index.defined()) << "Load of undefined\n";
     internal_assert(type.lanes() == index.type().lanes()) << "Vector lanes of Load must match vector lanes of index\n";
@@ -169,7 +169,7 @@ Expr Load::make(Type type, VarExpr buffer_var, Expr index, Expr predicate) {
 }
 
 
-Expr Ramp::make(Expr base, Expr stride, int lanes) {
+EXPORT Expr Ramp::make(Expr base, Expr stride, int lanes) {
     internal_assert(base.defined()) << "Ramp of undefined\n";
     internal_assert(stride.defined()) << "Ramp of undefined\n";
     internal_assert(base.type().is_scalar()) << "Ramp with vector base\n";
@@ -185,7 +185,7 @@ Expr Ramp::make(Expr base, Expr stride, int lanes) {
     return Expr(node);
 }
 
-Expr Broadcast::make(Expr value, int lanes) {
+EXPORT Expr Broadcast::make(Expr value, int lanes) {
     internal_assert(value.defined()) << "Broadcast of undefined\n";
     internal_assert(value.type().is_scalar()) << "Broadcast of vector\n";
     internal_assert(lanes != 1) << "Broadcast of lanes 1\n";
@@ -196,7 +196,7 @@ Expr Broadcast::make(Expr value, int lanes) {
     return Expr(node);
 }
 
-Expr Let::make(VarExpr var, Expr value, Expr body) {
+EXPORT Expr Let::make(VarExpr var, Expr value, Expr body) {
     internal_assert(value.defined()) << "Let of undefined\n";
     internal_assert(body.defined()) << "Let of undefined\n";
     internal_assert(value.type() == var.type()) << "Let var mismatch\n";
@@ -208,7 +208,7 @@ Expr Let::make(VarExpr var, Expr value, Expr body) {
     return Expr(node);
 }
 
-Stmt LetStmt::make(VarExpr var, Expr value, Stmt body) {
+EXPORT Stmt LetStmt::make(VarExpr var, Expr value, Stmt body) {
     internal_assert(value.defined()) << "Let of undefined\n";
     internal_assert(body.defined()) << "Let of undefined\n";
     internal_assert(value.type() == var.type()) << "Let var mismatch\n";
@@ -219,7 +219,7 @@ Stmt LetStmt::make(VarExpr var, Expr value, Stmt body) {
     return Stmt(node);
 }
 
-Stmt AttrStmt::make(NodeRef node, std::string attr_key, Expr value, Stmt body) {
+EXPORT Stmt AttrStmt::make(NodeRef node, std::string attr_key, Expr value, Stmt body) {
   auto n = make_node<AttrStmt>();
   n->node = node;
   n->attr_key = std::move(attr_key);
@@ -228,7 +228,7 @@ Stmt AttrStmt::make(NodeRef node, std::string attr_key, Expr value, Stmt body) {
   return Stmt(n);
 }
 
-Stmt AssertStmt::make(Expr condition, Expr message, Stmt body) {
+EXPORT Stmt AssertStmt::make(Expr condition, Expr message, Stmt body) {
     internal_assert(condition.defined()) << "AssertStmt of undefined\n";
     internal_assert(message.type() == Int(32) ||
                     message.as<StringImm>()) << "AssertStmt message must be an int or string:"
@@ -241,7 +241,7 @@ Stmt AssertStmt::make(Expr condition, Expr message, Stmt body) {
     return Stmt(node);
 }
 
-Stmt ProducerConsumer::make(FunctionRef func, bool is_producer, Stmt body) {
+EXPORT Stmt ProducerConsumer::make(FunctionRef func, bool is_producer, Stmt body) {
     internal_assert(body.defined()) << "ProducerConsumer of undefined\n";
 
     NodePtr<ProducerConsumer> node = make_node<ProducerConsumer>();
@@ -251,7 +251,7 @@ Stmt ProducerConsumer::make(FunctionRef func, bool is_producer, Stmt body) {
     return Stmt(node);
 }
 
-Stmt For::make(VarExpr loop_var,
+EXPORT Stmt For::make(VarExpr loop_var,
                Expr min, Expr extent,
                ForType for_type, DeviceAPI device_api,
                Stmt body) {
@@ -272,7 +272,7 @@ Stmt For::make(VarExpr loop_var,
     return Stmt(node);
 }
 
-Stmt Store::make(VarExpr buffer_var, Expr value, Expr index, Expr predicate) {
+EXPORT Stmt Store::make(VarExpr buffer_var, Expr value, Expr index, Expr predicate) {
     internal_assert(value.defined()) << "Store of undefined\n";
     internal_assert(index.defined()) << "Store of undefined\n";
     internal_assert(predicate.defined()) << "Store with undefined predicate\n";
@@ -288,7 +288,7 @@ Stmt Store::make(VarExpr buffer_var, Expr value, Expr index, Expr predicate) {
     return Stmt(node);
 }
 
-Stmt Provide::make(FunctionRef func, int value_index, Expr value, Array<Expr> args) {
+EXPORT Stmt Provide::make(FunctionRef func, int value_index, Expr value, Array<Expr> args) {
     internal_assert(value_index >=0 && value_index < func->num_outputs())
         << "value index output function return value bound";
     internal_assert(value.defined()) << "Provide of undefined value\n";
@@ -304,7 +304,7 @@ Stmt Provide::make(FunctionRef func, int value_index, Expr value, Array<Expr> ar
     return Stmt(node);
 }
 
-Stmt Allocate::make(VarExpr buffer_var,
+EXPORT Stmt Allocate::make(VarExpr buffer_var,
                     Type type,
                     Array<Expr> extents,
                     Expr condition, Stmt body,
@@ -447,7 +447,7 @@ Stmt IfThenElse::make(Expr condition, Stmt then_case, Stmt else_case) {
     return Stmt(node);
 }
 
-Stmt Evaluate::make(Expr v) {
+EXPORT Stmt Evaluate::make(Expr v) {
     internal_assert(v.defined()) << "Evaluate of undefined\n";
 
     NodePtr<Evaluate> node = make_node<Evaluate>();
@@ -455,7 +455,7 @@ Stmt Evaluate::make(Expr v) {
     return Stmt(node);
 }
 
-Expr Call::make(Type type, std::string name, Array<Expr> args, CallType call_type,
+EXPORT Expr Call::make(Type type, std::string name, Array<Expr> args, CallType call_type,
                 FunctionRef func, int value_index) {
     for (size_t i = 0; i < args.size(); i++) {
         internal_assert(args[i].defined()) << "Call of undefined\n";
