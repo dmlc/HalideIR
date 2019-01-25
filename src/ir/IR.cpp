@@ -649,7 +649,7 @@ template<> void ExprNode<Add>::accept(IRVisitor *v, const Expr &e) const { v->vi
 template<> void ExprNode<Sub>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Sub *)this, e); }
 template<> void ExprNode<Mul>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Mul *)this, e); }
 template<> void ExprNode<Div>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Div *)this, e); }
-template<> void ExprNode<Mod>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Mod *)this, e); }
+template<> EXPORT void ExprNode<Mod>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Mod *)this, e); }
 template<> EXPORT void ExprNode<Min>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Min *)this, e); }
 template<> EXPORT void ExprNode<Max>::accept(IRVisitor *v, const Expr &e) const { v->visit((const Max *)this, e); }
 template<> void ExprNode<EQ>::accept(IRVisitor *v, const Expr &e) const { v->visit((const EQ *)this, e); }
