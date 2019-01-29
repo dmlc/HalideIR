@@ -4133,7 +4133,7 @@ private:
                         new_args.push_back(string(buf));
                     }
                     changed = true;
-                } else if (last && float_imm) {
+                } else if (float_imm) {
                     snprintf(buf, sizeof(buf), "%f", float_imm->value);
                     if (last) {
                         new_args.back() = last->value + buf;
