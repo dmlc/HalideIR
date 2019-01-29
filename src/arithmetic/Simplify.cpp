@@ -1214,7 +1214,6 @@ private:
         } else if (no_overflow(op->type) &&
                    min_b &&
                    add_b_a &&
-                   no_overflow(op->type) &&
                    equal(a, add_b_a->a)) {
             // Quaternary expressions involving mins where a term
             // cancels. These are important for bounds inference
@@ -1224,7 +1223,6 @@ private:
         } else if (no_overflow(op->type) &&
                    min_b &&
                    add_b_a &&
-                   no_overflow(op->type) &&
                    equal(a, add_b_a->b)) {
             // a - min(b + a, c) -> max(-b, a-c)
             expr = mutate(max(0 - add_b_a->a, a - min_b->b));
@@ -1572,8 +1570,18 @@ private:
             sub_a_b = sub_a->b.as<Sub>();
         } else if (max_a) {
             mul_a_a = max_a->a.as<Mul>();
+            mul_a_b = max_a->b.as<Mul>();
+            add_a_a = max_a->a.as<Add>();
+            add_a_b = max_a->b.as<Add>();
+            sub_a_a = max_a->a.as<Sub>();
+            sub_a_b = max_a->b.as<Sub>();
         } else if (min_a) {
             mul_a_a = min_a->a.as<Mul>();
+            mul_a_b = min_a->b.as<Mul>();
+            add_a_a = min_a->a.as<Add>();
+            add_a_b = min_a->b.as<Add>();
+            sub_a_a = min_a->a.as<Sub>();
+            sub_a_b = min_a->b.as<Sub>();
         }
 
         if (add_a_a) {
@@ -1729,10 +1737,10 @@ private:
                 expr = mutate((sub_a->a / b) - (mul_a_b->a * ratio));
             } else if (max_a) {
                 // max(y, x*4) / 2 -> max(y/2, x*2)
-                expr = mutate(max(sub_a->a / b, mul_a_b->a * ratio));
+                expr = mutate(max(max_a->a / b, mul_a_b->a * ratio));
             } else if (min_a) {
                 // min(y, x*4) / 2 -> min(y/2, x*2)
-                expr = mutate(min(sub_a->a / b, mul_a_b->a * ratio));
+                expr = mutate(min(min_a->a / b, mul_a_b->a * ratio));
             }
         } else if (no_overflow(op->type) &&
                    add_a &&
@@ -6266,6 +6274,9 @@ void simplify_test() {
     check(min(max(x, y), min(y, x)), min(x, y));
     check(min(min(x, y), max(x, y)), min(x, y));
     check(min(min(y, x), max(x, y)), min(x, y));
+
+    check(max(y, x*4) / 2, max(y/2, x*2));
+    check(min(y, x*4) / 2, min(y/2, x*2));
 
     // Check if we can simplify away comparison on vector types considering bounds.
     Scope<Interval> bounds_info;
