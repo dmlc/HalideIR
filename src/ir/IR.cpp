@@ -22,6 +22,9 @@ EXPORT VarExpr::VarExpr(const std::string &name_hint,  Type t)
 
 namespace Internal {
 
+#if defined(__clang__)
+__attribute__((no_sanitize("undefined")))
+#endif
 EXPORT Expr IntImm::make(Type t, int64_t value) {
     internal_assert(t.is_int() && t.is_scalar())
         << "IntImm must be a scalar Int\n";
