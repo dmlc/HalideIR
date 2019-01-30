@@ -160,7 +160,7 @@ class IRFunctor<R(const NodeRef& n, Args...)> {
  *  };
  *
  *  // in cpp/cc file
- *  IRPrinter::FType& IRPrinter::vtable() { // NOLINT(*0
+ *  IRPrinter::FType& IRPrinter::vtable() { // NOLINT(*)
  *    static FType inst; return inst;
  *  }
  *
