@@ -56,7 +56,7 @@ class IRFunctor<R(const NodeRef& n, Args...)> {
    * \brief Whether the functor can dispatch the corresponding Node
    * \param n The node to be dispatched
    * \return Whether dispatching function is registered for n's type.
-3A3A3A   */
+   */
   inline bool can_dispatch(const NodeRef& n) const {
     uint32_t type_index = n.type_index();
     return type_index < func_.size() && func_[type_index] != nullptr;
@@ -160,7 +160,7 @@ class IRFunctor<R(const NodeRef& n, Args...)> {
  *  };
  *
  *  // in cpp/cc file
- *  IRPrinter::FType& IRPrinter::vtable() { // NOLINT(*0
+ *  IRPrinter::FType& IRPrinter::vtable() { // NOLINT(*)
  *    static FType inst; return inst;
  *  }
  *
