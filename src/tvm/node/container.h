@@ -427,7 +427,7 @@ class Map : public NodeRef {
     if (node_.get() == nullptr) return 0;
     return static_cast<const MapNode*>(node_.get())->data.size();
   }
-  /*! \return The size of the array */
+  /*! \return The number of elements of the key */
   inline size_t count(const K& key) const {
     if (node_.get() == nullptr) return 0;
     return static_cast<const MapNode*>(node_.get())->data.count(key.node_);
