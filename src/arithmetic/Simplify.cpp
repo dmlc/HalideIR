@@ -541,11 +541,19 @@ private:
                 expr = self;
                 info.old_uses++;
             }
-        } else {
-            // We never encountered a let that defines this var. Must
-            // be a uniform. Don't touch it.
-            expr = self;
+            return;
         }
+        if (bounds_info.contains(op)) {
+            auto bounds = bounds_info.ref(op);
+            if (bounds.first == bounds.second) {
+                expr = make_const(op->type, bounds.first);
+                return;
+            }
+        }
+        // We never encountered a let that defines this var.
+        // We couldn't simplify it to a constant either.
+        // Don't touch it.
+        expr = self;
     }
 
     void visit(const Add *op, const Expr &self) {
@@ -6282,6 +6290,10 @@ void simplify_test() {
     check_in_bounds(max(ramp(x,  1, 4), broadcast( 8, 4)), broadcast(8, 4),  bounds_info);
     check_in_bounds(max(ramp(x, -1, 4), broadcast(-4, 4)), ramp(x, -1, 4),   bounds_info);
     check_in_bounds(max(ramp(x, -1, 4), broadcast( 5, 4)), broadcast(5, 4),  bounds_info);
+
+    Scope<Interval> bounds_info_2;
+    bounds_info_2.push(x.get(), Interval(0,0));
+    check_in_bounds(x, 0, bounds_info_2);
 
     // Collapse some vector interleaves
     check(interleave_vectors({ramp(x, 2, 4), ramp(x+1, 2, 4)}), ramp(x, 1, 8));
