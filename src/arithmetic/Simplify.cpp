@@ -2029,7 +2029,9 @@ private:
                    (ia % ib == 0)) {
             // (x * (b*a) + y) % b -> (y % b)
             expr = mutate(add_a->b % b);
-        } else if (no_overflow(op->type) &&
+        } // Because TVM mod is not eucliean mod, this simplification will
+          // become wrong when y is negative in (y + (b*a)) % b
+          /* else if (no_overflow(op->type) &&
                    add_a &&
                    const_int(add_a->b, &ia) &&
                    const_int(b, &ib) &&
@@ -2037,7 +2039,7 @@ private:
                    (ia % ib == 0)) {
             // (y + (b*a)) % b -> (y % b)
             expr = mutate(add_a->a % b);
-        } else if (no_overflow(op->type) &&
+        }*/ else if (no_overflow(op->type) &&
                    add_a &&
                    mul_a_b &&
                    const_int(mul_a_b->b, &ia) &&
