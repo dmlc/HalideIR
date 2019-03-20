@@ -5231,7 +5231,7 @@ void check_algebra() {
 
     check((x*8) % 4, 0);
     check((x*8 + y) % 4, y % 4);
-    check((y + 8) % 4, y % 4);
+    // check((y + 8) % 4, y % 4);
     check((y + x*8) % 4, y % 4);
     check((y*16 + 13) % 2, 1);
 
