@@ -21,6 +21,8 @@ class NodeRef;
 namespace runtime {
 // forward declaration
 class NDArray;
+// forward declaration
+class Object;
 }  // namespace runtime
 
 /*!
@@ -41,6 +43,7 @@ class EXPORT AttrVisitor {
   virtual void Visit(const char* key, Type* value) = 0;
   virtual void Visit(const char* key, NodeRef* value) = 0;
   virtual void Visit(const char* key, runtime::NDArray* value) = 0;
+  virtual void Visit(const char* key, runtime::Object* value) = 0;
   template<typename ENum,
            typename = typename std::enable_if<std::is_enum<ENum>::value>::type>
   void Visit(const char* key, ENum* ptr) {
