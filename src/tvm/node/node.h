@@ -22,7 +22,7 @@ namespace runtime {
 // forward declaration
 class NDArray;
 // forward declaration
-struct Object;
+class Object;
 }  // namespace runtime
 
 /*!
