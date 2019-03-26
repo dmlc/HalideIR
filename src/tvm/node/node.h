@@ -23,11 +23,10 @@ namespace runtime {
 class NDArray;
 }  // namespace runtime
 
-namespace relay {
 namespace vm {
-struct VMObject;
-}
-}
+// forward declaration
+struct Object;
+}  // namespace runtime
 
 /*!
  * \brief Visitor class to each node content.
