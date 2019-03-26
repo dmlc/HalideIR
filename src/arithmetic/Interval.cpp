@@ -1,6 +1,7 @@
 #include "Interval.h"
 #include "ir/IROperator.h"
 #include "ir/IREquality.h"
+#include "Simplify.h"
 
 namespace HalideIR {
 namespace Internal {
@@ -107,8 +108,19 @@ Interval Interval::make_union(const Interval &a, const Interval &b) {
 }
 
 Interval Interval::make_intersection(const Interval &a, const Interval &b) {
-    return Interval(Interval::make_max(a.min, b.min),
-                    Interval::make_min(a.max, b.max));
+  auto min = Interval::make_max(a.min, b.min);
+  auto max = Interval::make_min(a.max, b.max);
+  if (min.same_as(Interval::pos_inf) || max.same_as(Interval::neg_inf)) {
+    return Interval::nothing();
+  }
+  else if (min.type() == max.type() &&
+      (min.type().is_int() || min.type().is_uint()) &&
+      can_prove(min > max)) {
+    return Interval::nothing();
+  }
+  else {
+    return Interval(min, max);
+  }
 }
 
 // Use Handle types for positive and negative infinity, to prevent
