@@ -59,8 +59,8 @@ EXPORT Expr UIntImm::make(Type t, uint64_t value) {
 }
 
 EXPORT Expr FloatImm::make(Type t, double value) {
-  internal_assert(t.is_float() && t.is_scalar())
-      << "FloatImm must be a scalar Float\n";
+  internal_assert(t.is_scalar())
+      << "FloatImm must be a scalar\n";
   NodePtr<FloatImm> node = make_node<FloatImm>();
   node->type = t;
   switch (t.bits()) {
