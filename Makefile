@@ -1,7 +1,9 @@
 DMLC_CORE_PATH ?= ../dmlc-core
+DLPACK_INCLUDE_PATH ?= ../dlpack/include
+
 LDFLAGS = -pthread -lm
 CFLAGS =  -std=c++11 -Wall -O2\
-	 -Iinclude -I${DMLC_CORE_PATH}/include -I../include -I../dlpack/include -Isrc -fPIC -fvisibility=hidden
+	 -Iinclude -I${DMLC_CORE_PATH}/include -I../include -I${DLPACK_INCLUDE_PATH}-Isrc -fPIC -fvisibility=hidden
 
 ifdef no_rtti
 	CFLAGS += -fno-rtti
