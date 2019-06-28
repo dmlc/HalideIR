@@ -243,9 +243,9 @@ inline bool Node::derived_from() const {
 
 template<typename T>
 inline bool Node::is_type() const {
-	// use static field so query only happens once.
-	static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
-	return type_id == this->type_index();
+  // use static field so query only happens once.
+  static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
+  return type_id == this->type_index();
 }
 
 
