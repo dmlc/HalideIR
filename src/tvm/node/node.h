@@ -234,18 +234,20 @@ inline SubRef Downcast(BaseRef ref);
 
 // implementations of inline functions after this
 template<typename T>
-inline bool Node::is_type() const {
-  // use static field so query only happens once.
-  static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
-  return type_id == this->type_index();
-}
-
-template<typename T>
 inline bool Node::derived_from() const {
   // use static field so query only happens once.
   static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
   return this->_DerivedFrom(type_id);
 }
+
+
+template<typename T>
+inline bool Node::is_type() const {
+	// use static field so query only happens once.
+	static uint32_t type_id = Node::TypeKey2Index(T::_type_key);
+	return type_id == this->type_index();
+}
+
 
 inline NodePtr<Node> Node::GetNodePtr() const {
   return NodePtr<Node>(const_cast<Node*>(this));
