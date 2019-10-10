@@ -587,13 +587,16 @@ struct Realize : public StmtNode<Realize> {
     Type type;
     Region bounds;
     Expr condition;
+    Expr new_expr;
+    std::string free_function;
     Stmt body;
 
     EXPORT static Stmt make(FunctionRef func,
                             int value_index,
                             Type type,
                             Region bounds,
-                            Expr condition, Stmt body);
+                            Expr condition, Stmt body,
+                            Expr new_expr = Expr(), std::string free_function = std::string());
 
     void VisitAttrs(IR::AttrVisitor* v) final {
         v->Visit("func", &func);
@@ -601,6 +604,8 @@ struct Realize : public StmtNode<Realize> {
         v->Visit("dtype", &type);
         v->Visit("bounds", &bounds);
         v->Visit("condition", &condition);
+        v->Visit("new_expr", &new_expr);
+        v->Visit("free_function", &free_function);
         v->Visit("body", &body);
     }
     static const IRNodeType _type_info = IRNodeType::Realize;

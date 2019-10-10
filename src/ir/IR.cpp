@@ -374,7 +374,8 @@ Stmt Free::make(VarExpr buffer_var) {
 }
 
 Stmt Realize::make(FunctionRef func, int value_index, Type type,
-                   Region bounds, Expr condition, Stmt body) {
+                   Region bounds, Expr condition, Stmt body,
+                   Expr new_expr, std::string free_function) {
     for (size_t i = 0; i < bounds.size(); i++) {
         internal_assert(bounds[i]->min.defined()) << "Realize of undefined\n";
         internal_assert(bounds[i]->extent.defined()) << "Realize of undefined\n";
@@ -390,6 +391,8 @@ Stmt Realize::make(FunctionRef func, int value_index, Type type,
     node->value_index = value_index;
     node->type = type;
     node->bounds = std::move(bounds);
+    node->new_expr = std::move(new_expr);
+    node->free_function = free_function;
     node->condition = std::move(condition);
     node->body = std::move(body);
     return Stmt(node);
